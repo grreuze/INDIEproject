@@ -1,49 +1,95 @@
 ﻿using UnityEngine;
 
+[ExecuteInEditMode]
 public class Star : MonoBehaviour {
 
+    #region Properties
+
     [SerializeField]
-    float scaleFactor;
+    float scaleFactor, minScale = 0.1f, maxScale = 1;
     [SerializeField]
     Material normalMat, hoverMat = null;
     Renderer rend;
+    Vector3 parentScale;
     bool hovered;
 
-    public static Star holding;
+    /// <summary>
+    /// The star that is currently held by the player, if any.
+    /// </summary>
+    public static Star heldStar;
 
-    bool held {
-        get {
-            return hovered && Input.GetMouseButton(0);
-        }
+    /// <summary>
+    /// Returns whether or not the player is holding this star.
+    /// </summary>
+    bool isHeld {
+        get { return hovered && Input.GetMouseButton(0); }
     }
-    
+
+    #endregion
+
+    #region DefaultMethods
+
     void Awake() {
         rend = GetComponent<Renderer>();
     }
 
-    void Update() {
-        transform.localScale = Vector3.one * Vector3.Distance(Vector3.zero, transform.position) * scaleFactor;
-
-        if (held) {
-            holding = this;
-            Vector3 screenPoint = Camera.main.WorldToScreenPoint(transform.position);
-            transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenPoint.z));
-        }
-    }
-
     void OnMouseEnter() {
-        if (holding == null)
+        if (heldStar == null)
             hovered = true;
         rend.material = hoverMat;
     }
 
     void OnMouseExit() {
-        if (!held) {
-            hovered = false;
-            holding = null;
-        }
+        if (!isHeld) StopHold();
         rend.material = normalMat;
     }
 
+    void Update() {
+        Rescale();
+        CheckHeld();
+    }
+
+    #endregion
+
+    Vector3 GetParentScale() {
+        Vector3 sf = Vector3.one;
+        Transform parent = transform.parent ?? null;
+
+        while (parent) {
+            sf.x *= 1 / parent.localScale.x;
+            sf.y *= 1 / parent.localScale.y;
+            sf.z *= 1 / parent.localScale.z;
+
+            parent = parent.parent ?? null;
+        }
+        return sf;
+    }
+
+    void Rescale() {
+        parentScale = GetParentScale();
+        Vector3 scale = Vector3.one * Vector3.Distance(Vector3.zero, transform.position) * scaleFactor;
+        scale.x *= parentScale.x;
+        scale.y *= parentScale.y;
+        scale.z *= parentScale.z;
+
+        scale.x = Mathf.Clamp(scale.x, minScale, maxScale);
+        scale.y = Mathf.Clamp(scale.y, minScale, maxScale);
+        scale.z = Mathf.Clamp(scale.z, minScale, maxScale);
+
+        transform.localScale = scale;
+    }
+
+    void CheckHeld() {
+        if (isHeld) {
+            heldStar = this;
+            Vector3 screenPoint = Camera.main.WorldToScreenPoint(transform.position);
+            transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenPoint.z));
+        } else if (heldStar == this) StopHold();
+    }
+
+    void StopHold() {
+        hovered = false;
+        heldStar = null;
+    }
 
 }
