@@ -3,7 +3,9 @@
 public class Star : MonoBehaviour {
 
     [SerializeField]
-    Material normalMat, hoverMat;
+    float scaleFactor;
+    [SerializeField]
+    Material normalMat, hoverMat = null;
     Renderer rend;
     bool hovered;
 
@@ -20,6 +22,8 @@ public class Star : MonoBehaviour {
     }
 
     void Update() {
+        transform.localScale = Vector3.one * Vector3.Distance(Vector3.zero, transform.position) * scaleFactor;
+
         if (held) {
             holding = this;
             Vector3 screenPoint = Camera.main.WorldToScreenPoint(transform.position);

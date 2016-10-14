@@ -11,8 +11,7 @@ public class MouseOrbit : MonoBehaviour {
 
     float x = 0.0f;
     float y = 0.0f;
-
-    // Use this for initialization
+    
     void Start() {
         distance = target.position.z - transform.position.z;
         Vector3 angles = transform.eulerAngles;
@@ -22,7 +21,6 @@ public class MouseOrbit : MonoBehaviour {
 
     void LateUpdate() {
         if (target) {
-
             x -= Input.GetAxis("Horizontal") * xSpeed * 0.02f;
 
             if (Input.GetKey(KeyCode.LeftShift))
