@@ -7,12 +7,14 @@ public class MouseOrbit : MonoBehaviour {
     public float distance = 5.0f;
     public float xSpeed = 120.0f;
     public float ySpeed = 120.0f;
+    public float moveSpeed = 0.5f;
 
     float x = 0.0f;
     float y = 0.0f;
 
     // Use this for initialization
     void Start() {
+        distance = target.position.z - transform.position.z;
         Vector3 angles = transform.eulerAngles;
         x = angles.y;
         y = angles.x;
@@ -20,13 +22,15 @@ public class MouseOrbit : MonoBehaviour {
 
     void LateUpdate() {
         if (target) {
-            if (Input.GetMouseButton(1)) {
-                x += Input.GetAxis("Mouse X") * xSpeed * distance * 0.02f;
-                y -= Input.GetAxis("Mouse Y") * ySpeed * 0.02f;
-            }
-            Quaternion rotation = Quaternion.Euler(y, x, 0);
 
-            distance = distance - Input.GetAxis("Mouse ScrollWheel") * 5;
+            x -= Input.GetAxis("Horizontal") * xSpeed * 0.02f;
+
+            if (Input.GetKey(KeyCode.LeftShift))
+                distance = distance - Input.GetAxis("Vertical") * moveSpeed;
+            else
+                y += Input.GetAxis("Vertical") * ySpeed * 0.02f;
+
+            Quaternion rotation = Quaternion.Euler(y, x, 0);
             
             Vector3 negDistance = new Vector3(0.0f, 0.0f, -distance);
             Vector3 position = rotation * negDistance + target.position;
