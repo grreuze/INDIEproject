@@ -53,4 +53,10 @@ public class WorldWrapper : MonoBehaviour {
             }
         }
     }
+
+    public void Rotate(Vector3 rotation) {
+        for (int i = 0; i < worldInstances.Count; i++) {
+            worldInstances[i].Rotate(rotation, Space.World);
+        }
+    }
 }

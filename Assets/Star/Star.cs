@@ -11,6 +11,7 @@ public class Star : MonoBehaviour {
     Material normalMat, hoverMat = null;
     Renderer rend;
     Vector3 parentScale;
+    Transform worldInstance;
     bool hovered;
 
     /// <summary>
@@ -31,6 +32,7 @@ public class Star : MonoBehaviour {
 
     void Awake() {
         rend = GetComponent<Renderer>();
+        worldInstance = transform.parent;
     }
 
     void OnMouseEnter() {
@@ -72,9 +74,9 @@ public class Star : MonoBehaviour {
         scale.y *= parentScale.y;
         scale.z *= parentScale.z;
 
-        scale.x = Mathf.Clamp(scale.x, minScale, maxScale);
-        scale.y = Mathf.Clamp(scale.y, minScale, maxScale);
-        scale.z = Mathf.Clamp(scale.z, minScale, maxScale);
+        scale.x = Mathf.Clamp(scale.x, minScale * parentScale.x, maxScale * parentScale.x);
+        scale.y = Mathf.Clamp(scale.y, minScale * parentScale.y, maxScale * parentScale.y);
+        scale.z = Mathf.Clamp(scale.z, minScale * parentScale.z, maxScale * parentScale.z);
 
         transform.localScale = scale;
     }
@@ -82,6 +84,7 @@ public class Star : MonoBehaviour {
     void CheckHeld() {
         if (isHeld) {
             heldStar = this;
+            transform.parent = null;
             Vector3 screenPoint = Camera.main.WorldToScreenPoint(transform.position);
             transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenPoint.z));
         } else if (heldStar == this) StopHold();
@@ -90,6 +93,7 @@ public class Star : MonoBehaviour {
     void StopHold() {
         hovered = false;
         heldStar = null;
+        transform.parent = worldInstance;
     }
 
 }
