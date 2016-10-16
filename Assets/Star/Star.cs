@@ -16,6 +16,8 @@ public class Star : MonoBehaviour {
     Star[] clones;
     bool hovered;
 
+    static WorldWrapper wrapper;
+
     public bool anchored;
     public int id;
 
@@ -37,6 +39,7 @@ public class Star : MonoBehaviour {
 
     void Start() {
         rend = GetComponent<Renderer>();
+        if (!wrapper) wrapper = WorldWrapper.singleton;
         GetWorldInstance();
         GetAllClones();
     }
@@ -49,8 +52,10 @@ public class Star : MonoBehaviour {
     }
 
     void OnMouseExit() {
-        if (!isHeld) StopHold();
-        rend.material = normalMat;
+        if (!isHeld) {
+            StopHold();
+            rend.material = normalMat;
+        }
     }
 
     void Update() {
@@ -59,6 +64,8 @@ public class Star : MonoBehaviour {
     }
 
     #endregion
+
+    #region StarMethods
 
     void GetWorldInstance() {
         worldTransform = transform.parent;
@@ -116,7 +123,7 @@ public class Star : MonoBehaviour {
     }
 
     void ChangeInstance() {
-        int diff = WorldWrapper.singleton.currentInstance.id - worldInstance.id;
+        int diff = wrapper.currentInstance.id - worldInstance.id;
         if (diff == 0)
             transform.parent = worldTransform;
         else {
@@ -126,14 +133,16 @@ public class Star : MonoBehaviour {
     }
 
     public void SetNewInstance(int diff) {
-        int instances = WorldWrapper.singleton.worldInstances.Count;
+        int instances = wrapper.worldInstances.Count;
         int newid = worldInstance.id + diff;
         if (newid < 0) newid += instances;
         else if (newid > instances - 1) newid -= instances;
         
-        transform.parent = WorldWrapper.singleton.worldInstances[newid].transform;
+        transform.parent = wrapper.worldInstances[newid].transform;
         GetWorldInstance();
     }
+
+    #endregion
 
     #region CloneMethods
 

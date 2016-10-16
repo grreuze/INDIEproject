@@ -41,7 +41,7 @@ public class WorldWrapper : MonoBehaviour {
     }
 
     public void Zoom() {
-        for (int i=0; i < worldInstances.Count; i++) {
+        for (int i = 0; i < worldInstances.Count; i++) {
             worldInstances[i].transform.localScale += Input.GetAxis("Vertical") * worldInstances[i].transform.localScale * scaleSpeed;
 
             if (worldInstances[i].transform.localScale.x > maxScale) {
@@ -64,6 +64,11 @@ public class WorldWrapper : MonoBehaviour {
         }
     }
 
+    /// <summary>
+    /// Returns the current index of the specified world instance.
+    /// </summary>
+    /// <param name="world"> The world instance whose index to return. </param>
+    /// <returns> The index of the specified world instance. </returns>
     public int ID(WorldInstance world) {
         return worldInstances.IndexOf(world);
     }
