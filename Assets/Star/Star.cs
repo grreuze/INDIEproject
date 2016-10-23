@@ -4,11 +4,13 @@
 public class Star : MonoBehaviour {
 
     #region Properties
+    
+    public enum Color { White, Red, Cyan, Purple, Yellow }
 
     [SerializeField]
     float scaleFactor, minScale = 0.1f, maxScale = 1;
     [SerializeField]
-    Material normalMat, hoverMat = null;
+    Material hoverMat = null;
     Renderer rend;
     Vector3 parentScale;
     Transform worldTransform;
@@ -18,8 +20,10 @@ public class Star : MonoBehaviour {
 
     static WorldWrapper wrapper;
 
+    public Material mat;
     public bool anchored;
     public int id;
+    public Color currentColor;
 
     /// <summary>
     /// The star that is currently held by the player, if any.
@@ -39,6 +43,7 @@ public class Star : MonoBehaviour {
 
     void Start() {
         rend = GetComponent<Renderer>();
+        rend.sharedMaterial = mat;
         if (!wrapper) wrapper = WorldWrapper.singleton;
         GetWorldInstance();
         GetAllClones();
@@ -47,15 +52,12 @@ public class Star : MonoBehaviour {
     void OnMouseEnter() {
         if (heldStar == null) {
             hovered = true;
-            rend.material = hoverMat;
+            rend.sharedMaterial = hoverMat;
         }
     }
 
     void OnMouseExit() {
-        if (!isHeld) {
-            StopHold();
-            rend.material = normalMat;
-        }
+        if (!isHeld) StopHold();
     }
 
     void Update() {
@@ -115,6 +117,7 @@ public class Star : MonoBehaviour {
 
     void StopHold() {
         hovered = false;
+        rend.sharedMaterial = mat;
         if (heldStar == this) {
             heldStar = null;
             ChangeInstance();
@@ -136,7 +139,9 @@ public class Star : MonoBehaviour {
         int instances = wrapper.worldInstances.Count;
         int newid = worldInstance.id + diff;
         if (newid < 0) newid += instances;
-        else if (newid > instances - 1) newid -= instances;
+        else if (newid > instances - 1) {
+            newid -= instances;
+        }
         
         transform.parent = wrapper.worldInstances[newid].transform;
         GetWorldInstance();

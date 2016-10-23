@@ -8,6 +8,9 @@ public class WorldInstance : MonoBehaviour {
     Star starPrefab;
     public Star[] stars;
 
+    [SerializeField]
+    Material[] starMaterials;
+
     public int id {
         get { return WorldWrapper.singleton.ID(this); }
     }
@@ -20,6 +23,8 @@ public class WorldInstance : MonoBehaviour {
             newStar.transform.parent = transform;
             newStar.name = "Star " + i;
             newStar.id = i;
+            newStar.currentColor = (Star.Color) Random.Range(0, starMaterials.Length);
+            newStar.mat = starMaterials[(int)newStar.currentColor];
             stars[i] = newStar;
         }
         WorldWrapper.singleton.Generate();
