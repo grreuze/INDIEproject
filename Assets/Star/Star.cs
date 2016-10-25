@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 [ExecuteInEditMode]
 public class Star : MonoBehaviour {
@@ -6,19 +7,6 @@ public class Star : MonoBehaviour {
     #region Properties
     
     public enum Color { White, Red, Cyan, Purple, Yellow }
-
-    [SerializeField]
-    float scaleFactor, minScale = 0.1f, maxScale = 1;
-    [SerializeField]
-    Material hoverMat = null;
-    Renderer rend;
-    Vector3 parentScale;
-    Transform worldTransform;
-    WorldInstance worldInstance;
-    Star[] clones;
-    bool hovered;
-
-    static WorldWrapper wrapper;
 
     public Material mat;
     public bool anchored;
@@ -29,6 +17,25 @@ public class Star : MonoBehaviour {
     /// The star that is currently held by the player, if any.
     /// </summary>
     public static Star heldStar;
+    /// <summary>
+    /// The star that is currently linked by the player, if any.
+    /// </summary>
+    public static Star linking;
+
+    [SerializeField]
+    float scaleFactor, minScale = 0.1f, maxScale = 1;
+    [SerializeField]
+    Material hoverMat = null;
+    [SerializeField]
+    Link link;
+
+    Renderer rend;
+    Vector3 parentScale;
+    Transform worldTransform;
+    WorldInstance worldInstance;
+    Star[] clones;
+    List<Star> linked = new List<Star>();
+    bool hovered;
 
     /// <summary>
     /// Returns whether or not the player is holding this star.
@@ -36,6 +43,8 @@ public class Star : MonoBehaviour {
     bool isHeld {
         get { return hovered && Input.GetMouseButton(0); }
     }
+
+    static WorldWrapper wrapper;
     
     #endregion
 
@@ -63,6 +72,7 @@ public class Star : MonoBehaviour {
     void Update() {
         Rescale();
         CheckHeld();
+        CheckLink();
     }
 
     #endregion
@@ -135,16 +145,70 @@ public class Star : MonoBehaviour {
         }
     }
 
-    public void SetNewInstance(int diff) {
+    /// <summary>
+    /// Returns the ID of the World Instance set at the specified relative distance.
+    /// </summary>
+    /// <param name="diff"> The difference between the current instance and the desired one. </param>
+    /// <returns> The ID of the desired World Instance. </returns>
+    int InverseInstanceID(int diff) {
         int instances = wrapper.worldInstances.Count;
         int newid = worldInstance.id + diff;
         if (newid < 0) newid += instances;
-        else if (newid > instances - 1) {
+        else if (newid > instances - 1)
             newid -= instances;
-        }
-        
+        return newid;
+    }
+    
+
+    /// <summary>
+    /// Sets the star's instance to the one at the specified relative distance.
+    /// </summary>
+    /// <param name="diff"> The difference between the current instance and the desired one. </param>
+    public void SetNewInstance(int diff) {
+        int newid = InverseInstanceID(diff);
         transform.parent = wrapper.worldInstances[newid].transform;
         GetWorldInstance();
+    }
+
+    #endregion
+
+    #region LinkMethods
+
+    void CheckLink() {
+        if (Input.GetMouseButtonDown(1)) {
+            if (hovered) {
+                if (linking == null)
+                    linking = this;
+
+                else if (linking != this) {
+                    linked.Add(linking);
+                    int diff = linking.worldInstance.id - worldInstance.id;
+                    BuildLink(linking);
+                    LinkClones(linking.id, diff);
+                    linking = null;
+                } else
+                    linking = null;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Links to the specified star in the instance set at the specified distance.
+    /// </summary>
+    /// <param name="starID"> The ID of the star to link to. </param>
+    /// <param name="diff"> The difference between the current instance and the desired one. </param>
+    public void LinkTo(int starID, int diff) {
+        int worldID = InverseInstanceID(diff);
+        Star target = wrapper.worldInstances[worldID].stars[starID];
+        linked.Add(target);
+        BuildLink(target);
+    }
+
+    void BuildLink(Star target) {
+        Link newlink = Instantiate(link);
+        newlink.transform.parent = transform;
+        newlink.transform.position = Vector3.zero;
+        newlink.targetPoint = target.transform;
     }
 
     #endregion
@@ -175,9 +239,13 @@ public class Star : MonoBehaviour {
         }
     }
 
-    void GetAllClones() {
-        WorldWrapper wrapper = WorldWrapper.singleton;
+    void LinkClones(int starid, int diff) {
+        foreach (Star clone in clones) {
+            clone.LinkTo(starid, diff);
+        }
+    }
 
+    void GetAllClones() {
         clones = new Star[wrapper.worldInstances.Count - 1];
 
         for (int i=0, j=0; i < clones.Length + 1; i++, j++) {
