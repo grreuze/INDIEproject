@@ -22,6 +22,8 @@ public class Star : MonoBehaviour {
     /// </summary>
     public static Star linking;
 
+    public WorldInstance worldInstance;
+
     [SerializeField]
     float scaleFactor, minScale = 0.1f, maxScale = 1;
     [SerializeField]
@@ -32,9 +34,9 @@ public class Star : MonoBehaviour {
     Renderer rend;
     Vector3 parentScale;
     Transform worldTransform;
-    WorldInstance worldInstance;
     Star[] clones;
     List<Star> linked = new List<Star>();
+    List<Link> links = new List<Link>();
     bool hovered;
 
     /// <summary>
@@ -73,6 +75,12 @@ public class Star : MonoBehaviour {
         Rescale();
         CheckHeld();
         CheckLink();
+
+        //if (Mathf.Abs(transform.localPosition.x) > 1000)
+        //    transform.localPosition /= 10000;
+
+        if (transform.localPosition.x > worldInstance.radius || transform.localPosition.x < -worldInstance.radius)
+            print(name + " #" + worldInstance.id + " is too far");
     }
 
     #endregion
@@ -142,13 +150,14 @@ public class Star : MonoBehaviour {
         else {
             SetNewInstance(diff);
             SetNewCloneInstance(diff);
+            if (links.Count > 0) CheckLinksCrossInstance();
         }
     }
 
     /// <summary>
     /// Returns the ID of the World Instance set at the specified relative distance.
     /// </summary>
-    /// <param name="diff"> The difference between the current instance and the desired one. </param>
+    /// <param name="diff"> The difference between the current instance ID and the desired one. </param>
     /// <returns> The ID of the desired World Instance. </returns>
     int InverseInstanceID(int diff) {
         int instances = wrapper.worldInstances.Count;
@@ -166,8 +175,10 @@ public class Star : MonoBehaviour {
     /// <param name="diff"> The difference between the current instance and the desired one. </param>
     public void SetNewInstance(int diff) {
         int newid = InverseInstanceID(diff);
+        Vector3 pos = transform.localPosition;
         transform.parent = wrapper.worldInstances[newid].transform;
         GetWorldInstance();
+        //if (newid == 0) transform.localPosition = pos; //If we get to the smallest instance while being held (as clone), we need to teleport
     }
 
     #endregion
@@ -183,8 +194,9 @@ public class Star : MonoBehaviour {
                 else if (linking != this) {
                     linked.Add(linking);
                     int diff = linking.worldInstance.id - worldInstance.id;
-                    BuildLink(linking);
+                    BuildLink(linking, diff);
                     LinkClones(linking.id, diff);
+                    CheckLinksCrossInstance();
                     linking = null;
                 } else
                     linking = null;
@@ -201,14 +213,35 @@ public class Star : MonoBehaviour {
         int worldID = InverseInstanceID(diff);
         Star target = wrapper.worldInstances[worldID].stars[starID];
         linked.Add(target);
-        BuildLink(target);
+        BuildLink(target, diff);
     }
 
-    void BuildLink(Star target) {
+    void BuildLink(Star target, int diff) {
         Link newlink = Instantiate(link);
         newlink.transform.parent = transform;
-        newlink.transform.position = Vector3.zero;
-        newlink.targetPoint = target.transform;
+        newlink.transform.position = transform.position;
+        newlink.target = target;
+        links.Add(newlink);
+    }
+
+    void CheckLinksCrossInstance() {
+        foreach(Link link in links) {
+            int diff = link.target.worldInstance.id - worldInstance.id;
+            print(link.target.worldInstance.id + " - " + worldInstance.id + " = " + diff);
+
+
+            link.isCrossing = IsCrossing(diff);
+        }
+        SetCrossInstanceClones();
+    }
+
+    Link.CrossInstance IsCrossing(int diff) {
+        Link.CrossInstance isCrossing = 0;
+        if (diff > 0)
+            isCrossing = Link.CrossInstance.Outward;
+        else if (diff < 0)
+            isCrossing = Link.CrossInstance.Inward;
+        return isCrossing;
     }
 
     #endregion
@@ -242,6 +275,17 @@ public class Star : MonoBehaviour {
     void LinkClones(int starid, int diff) {
         foreach (Star clone in clones) {
             clone.LinkTo(starid, diff);
+        }
+    }
+
+    void SetCrossInstanceClones() {
+        foreach (Star clone in clones) {
+            int i = 0;
+            foreach (Link link in clone.links) {
+                link.isCrossing = links[i].isCrossing;
+                print(clone.name + "[" + clone.worldInstance.id + "] " + "Set link #" + i + " to " + link.isCrossing);
+                i++;
+            }
         }
     }
 

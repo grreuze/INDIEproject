@@ -29,20 +29,26 @@ public class WorldWrapper : MonoBehaviour {
 
         worldInstances.Add(Instantiate(ogWorldInstance));
         worldInstances[0].transform.localScale = ogWorldInstance.transform.localScale / (scaleFactor * scaleFactor);
+        worldInstances[0].name = "WorldInstance [0]";
 
         worldInstances.Add(Instantiate(ogWorldInstance));
         worldInstances[1].transform.localScale = ogWorldInstance.transform.localScale / scaleFactor;
+        worldInstances[1].name = "WorldInstance [1]";
 
         worldInstances.Add(ogWorldInstance);
         currentID = 2;
+        worldInstances[2].name = "WorldInstance [2]";
 
         worldInstances.Add(Instantiate(ogWorldInstance));
         worldInstances[3].transform.localScale = ogWorldInstance.transform.localScale * scaleFactor;
+        worldInstances[3].name = "WorldInstance [3]";
     }
 
     public void Zoom() {
         for (int i = 0; i < worldInstances.Count; i++) {
             worldInstances[i].transform.localScale += Input.GetAxis("Vertical") * worldInstances[i].transform.localScale * scaleSpeed;
+
+            worldInstances[i].name = "WorldInstance [" + i + "]";
 
             if (worldInstances[i].transform.localScale.x > maxScale) {
                 worldInstances[i].transform.localScale = Vector3.one * minScale;
