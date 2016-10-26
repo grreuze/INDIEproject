@@ -22,7 +22,7 @@ public class CameraOrbit : MonoBehaviour {
         wrapper = WorldWrapper.singleton;
     }
 
-    void LateUpdate() {
+    void Update() {
         if (target) {
             pitch = Input.GetAxis("Horizontal") * xSpeed * 0.02f;
             if (invertY) pitch *= -1;

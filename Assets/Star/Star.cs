@@ -71,16 +71,18 @@ public class Star : MonoBehaviour {
         if (!isHeld) StopHold();
     }
 
-    void Update() {
+    void LateUpdate() {
         Rescale();
         CheckHeld();
         CheckLink();
 
-        //if (Mathf.Abs(transform.localPosition.x) > 1000)
-        //    transform.localPosition /= 10000;
+        if (Mathf.Abs(transform.localPosition.x) > 1000)
+            transform.localPosition /= 10000;
+        if (Mathf.Abs(transform.localPosition.x) < 0.001)
+            transform.localPosition *= 10000;
 
-        if (transform.localPosition.x > worldInstance.radius || transform.localPosition.x < -worldInstance.radius)
-            print(name + " #" + worldInstance.id + " is too far");
+        //if (Mathf.Abs(transform.localPosition.x) > worldInstance.radius)
+          //  print(name + " #" + worldInstance.id + " is too far");
     }
 
     #endregion
@@ -175,10 +177,8 @@ public class Star : MonoBehaviour {
     /// <param name="diff"> The difference between the current instance and the desired one. </param>
     public void SetNewInstance(int diff) {
         int newid = InverseInstanceID(diff);
-        Vector3 pos = transform.localPosition;
         transform.parent = wrapper.worldInstances[newid].transform;
         GetWorldInstance();
-        //if (newid == 0) transform.localPosition = pos; //If we get to the smallest instance while being held (as clone), we need to teleport
     }
 
     #endregion
