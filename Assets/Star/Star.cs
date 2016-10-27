@@ -92,6 +92,7 @@ public class Star : MonoBehaviour {
     void GetWorldInstance() {
         worldTransform = transform.parent;
         worldInstance = worldTransform.GetComponent<WorldInstance>();
+        worldInstance.stars[id] = this;
     }
 
     Vector3 GetParentScale() {
@@ -227,9 +228,6 @@ public class Star : MonoBehaviour {
     void CheckLinksCrossInstance() {
         foreach(Link link in links) {
             int diff = link.target.worldInstance.id - worldInstance.id;
-            print(link.target.worldInstance.id + " - " + worldInstance.id + " = " + diff);
-
-
             link.isCrossing = IsCrossing(diff);
         }
         SetCrossInstanceClones();
@@ -283,7 +281,7 @@ public class Star : MonoBehaviour {
             int i = 0;
             foreach (Link link in clone.links) {
                 link.isCrossing = links[i].isCrossing;
-                print(clone.name + "[" + clone.worldInstance.id + "] " + "Set link #" + i + " to " + link.isCrossing);
+                print(clone.name + "[" + clone.worldInstance.id + "] " + "Set link #" + i + " " + link.isCrossing + " to " + link.target.name + "[" + link.target.worldInstance.id + "] ");
                 i++;
             }
         }
