@@ -7,12 +7,13 @@ public class WorldInstance : MonoBehaviour {
     [SerializeField]
     Star starPrefab;
     public Star[] stars;
+    public int loop = 0;
 
     [SerializeField]
     Material[] starMaterials;
 
     public int id {
-        get { return WorldWrapper.singleton.ID(this); }
+        get { return WorldWrapper.singleton.worldInstanceID(this); }
     }
 
     void Start() {

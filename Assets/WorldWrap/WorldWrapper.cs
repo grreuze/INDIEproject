@@ -13,9 +13,20 @@ public class WorldWrapper : MonoBehaviour {
     float minScale, maxScale;
 
     public static WorldWrapper singleton;
+
+    public bool repeatLinks;
+
+    /// <summary>
+    /// The ID of the instance the camera is currently in.
+    /// </summary>
     int currentID;
     public WorldInstance currentInstance {
-        get { return worldInstances[currentID]; }
+        get {
+
+            // to do: get the instance closest to scale 1
+
+            return worldInstances[currentID];
+        }
     }
 
     void Awake() {
@@ -25,7 +36,7 @@ public class WorldWrapper : MonoBehaviour {
     }
 
     public void Generate() {
-        ogWorldInstance.GetComponent<WorldInstance>().enabled = false;
+        ogWorldInstance.GetComponent<WorldInstance>().enabled = false; //Prevent other instances to re-instantiate stars
 
         worldInstances.Add(Instantiate(ogWorldInstance));
         worldInstances[0].transform.localScale = ogWorldInstance.transform.localScale / (scaleFactor * scaleFactor);
@@ -52,11 +63,13 @@ public class WorldWrapper : MonoBehaviour {
 
             if (worldInstances[i].transform.localScale.x > maxScale) {
                 worldInstances[i].transform.localScale = Vector3.one * minScale;
-                worldInstances.Insert(0, worldInstances[i]);
-                worldInstances.RemoveAt(i + 1);
+                worldInstances[i].loop++;
+                worldInstances.Insert(0, worldInstances[i]); //Adds the reference to the instance at the beginning of the list
+                worldInstances.RemoveAt(i + 1); //Removes the reference to the instance from the end of the list
 
             } else if (worldInstances[i].transform.localScale.x < minScale) {
                 worldInstances[i].transform.localScale = Vector3.one * maxScale;
+                worldInstances[i].loop--;
                 worldInstances.Insert(worldInstances.Count, worldInstances[i]);
                 worldInstances.RemoveAt(i);
 
@@ -75,7 +88,7 @@ public class WorldWrapper : MonoBehaviour {
     /// </summary>
     /// <param name="world"> The world instance whose index to return. </param>
     /// <returns> The index of the specified world instance. </returns>
-    public int ID(WorldInstance world) {
+    public int worldInstanceID(WorldInstance world) {
         return worldInstances.IndexOf(world);
     }
 }

@@ -21,9 +21,9 @@ public class Star : MonoBehaviour {
     /// The star that is currently linked by the player, if any.
     /// </summary>
     public static Star linking;
-
+    
     public WorldInstance worldInstance;
-
+    
     [SerializeField]
     float scaleFactor, minScale = 0.1f, maxScale = 1;
     [SerializeField]
@@ -37,6 +37,8 @@ public class Star : MonoBehaviour {
     Star[] clones;
     List<Star> linked = new List<Star>();
     List<Link> links = new List<Link>();
+    List<Link> targeted = new List<Link>();
+    int linkLoop;
     bool hovered;
 
     /// <summary>
@@ -80,15 +82,15 @@ public class Star : MonoBehaviour {
             transform.localPosition /= 10000;
         if (Mathf.Abs(transform.localPosition.x) < 0.001)
             transform.localPosition *= 10000;
-
-        //if (Mathf.Abs(transform.localPosition.x) > worldInstance.radius)
-          //  print(name + " #" + worldInstance.id + " is too far");
     }
 
     #endregion
 
     #region StarMethods
 
+    /// <summary>
+    /// Gets the parent World Instance
+    /// </summary>
     void GetWorldInstance() {
         worldTransform = transform.parent;
         worldInstance = worldTransform.GetComponent<WorldInstance>();
@@ -133,6 +135,7 @@ public class Star : MonoBehaviour {
             MoveClones();
             Vector3 screenPoint = Camera.main.WorldToScreenPoint(transform.position);
             transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenPoint.z));
+            UpdateLinks();
         } else if (heldStar == this) StopHold();
     }
 
@@ -153,7 +156,7 @@ public class Star : MonoBehaviour {
         else {
             SetNewInstance(diff);
             SetNewCloneInstance(diff);
-            if (links.Count > 0) CheckLinksCrossInstance();
+            UpdateLinks();
         }
     }
 
@@ -189,15 +192,15 @@ public class Star : MonoBehaviour {
     void CheckLink() {
         if (Input.GetMouseButtonDown(1)) {
             if (hovered) {
-                if (linking == null)
+                if (linking == null) {
                     linking = this;
-
-                else if (linking != this) {
+                    linkLoop = worldInstance.loop;
+                } else if (linking != this) {
                     linked.Add(linking);
                     int diff = linking.worldInstance.id - worldInstance.id;
                     BuildLink(linking, diff);
-                    LinkClones(linking.id, diff);
-                    CheckLinksCrossInstance();
+                    if (wrapper.repeatLinks) LinkClones(linking.id, diff);
+                    UpdateLinks();
                     linking = null;
                 } else
                     linking = null;
@@ -222,24 +225,25 @@ public class Star : MonoBehaviour {
         newlink.transform.parent = transform;
         newlink.transform.position = transform.position;
         newlink.target = target;
+        newlink.targetLoop = linkLoop;
+        newlink.originLoop = worldInstance.loop;
+        target.targeted.Add(newlink);
         links.Add(newlink);
     }
 
-    void CheckLinksCrossInstance() {
-        foreach(Link link in links) {
-            int diff = link.target.worldInstance.id - worldInstance.id;
-            link.isCrossing = IsCrossing(diff);
-        }
-        SetCrossInstanceClones();
+    void UpdateLinks() {
+        if (links.Count > 0) UpdateOriginPoints();
+        if (targeted.Count > 0) UpdateTargetPoints();
     }
 
-    Link.CrossInstance IsCrossing(int diff) {
-        Link.CrossInstance isCrossing = 0;
-        if (diff > 0)
-            isCrossing = Link.CrossInstance.Outward;
-        else if (diff < 0)
-            isCrossing = Link.CrossInstance.Inward;
-        return isCrossing;
+    void UpdateOriginPoints() {
+        foreach (Link link in links) 
+            link.originLoop = wrapper.currentInstance.loop;
+    }
+
+    void UpdateTargetPoints() {
+        foreach (Link link in targeted) 
+            link.targetLoop = wrapper.currentInstance.loop;
     }
 
     #endregion
@@ -273,17 +277,6 @@ public class Star : MonoBehaviour {
     void LinkClones(int starid, int diff) {
         foreach (Star clone in clones) {
             clone.LinkTo(starid, diff);
-        }
-    }
-
-    void SetCrossInstanceClones() {
-        foreach (Star clone in clones) {
-            int i = 0;
-            foreach (Link link in clone.links) {
-                link.isCrossing = links[i].isCrossing;
-                print(clone.name + "[" + clone.worldInstance.id + "] " + "Set link #" + i + " " + link.isCrossing + " to " + link.target.name + "[" + link.target.worldInstance.id + "] ");
-                i++;
-            }
         }
     }
 
