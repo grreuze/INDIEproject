@@ -21,7 +21,9 @@ public class Star : MonoBehaviour {
     /// The star that is currently linked by the player, if any.
     /// </summary>
     public static Star linking;
-    
+
+    public static Star focused;
+
     public WorldInstance worldInstance;
     
     [SerializeField]
@@ -65,6 +67,7 @@ public class Star : MonoBehaviour {
     void OnMouseEnter() {
         if (heldStar == null) {
             hovered = true;
+            focused = this;
             rend.sharedMaterial = hoverMat;
         }
     }
@@ -141,6 +144,7 @@ public class Star : MonoBehaviour {
 
     void StopHold() {
         hovered = false;
+        focused = null;
         rend.sharedMaterial = mat;
         if (heldStar == this) {
             heldStar = null;
@@ -190,21 +194,24 @@ public class Star : MonoBehaviour {
     #region LinkMethods
 
     void CheckLink() {
-        if (Input.GetMouseButtonDown(1)) {
-            if (hovered) {
-                if (linking == null) {
-                    linking = this;
-                    linkLoop = worldInstance.loop;
-                } else if (linking != this) {
+        if (hovered) {
+            if (Input.GetMouseButtonDown(1)) {
+                linking = this;
+                linkLoop = worldInstance.loop;
+            }
+            if (Input.GetMouseButtonUp(1)) {
+                if (linking && linking != this) {
                     linked.Add(linking);
                     int diff = linking.worldInstance.id - worldInstance.id;
                     BuildLink(linking, diff);
                     if (wrapper.repeatLinks) LinkClones(linking.id, diff);
                     UpdateLinks();
                     linking = null;
-                } else
-                    linking = null;
+                }
             }
+        }
+        if (Input.GetMouseButtonUp(1) && focused == null) {
+            linking = null;
         }
     }
 
