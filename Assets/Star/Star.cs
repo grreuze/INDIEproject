@@ -13,17 +13,6 @@ public class Star : MonoBehaviour {
     public int id;
     public Color currentColor;
 
-    /// <summary>
-    /// The star that is currently held by the player, if any.
-    /// </summary>
-    public static Star heldStar;
-    /// <summary>
-    /// The star that is currently linked by the player, if any.
-    /// </summary>
-    public static Star linking;
-
-    public static Star focused;
-
     public WorldInstance worldInstance;
     
     [SerializeField]
@@ -40,7 +29,6 @@ public class Star : MonoBehaviour {
     List<Star> linked = new List<Star>();
     List<Link> links = new List<Link>();
     List<Link> targeted = new List<Link>();
-    int linkLoop;
     bool hovered;
 
     /// <summary>
@@ -65,9 +53,9 @@ public class Star : MonoBehaviour {
     }
 
     void OnMouseEnter() {
-        if (heldStar == null) {
+        if (!isHeld && !Input.GetMouseButton(0) && Mouse.holding == null) {
             hovered = true;
-            focused = this;
+            Mouse.hover = this;
             rend.sharedMaterial = hoverMat;
         }
     }
@@ -76,7 +64,7 @@ public class Star : MonoBehaviour {
         if (!isHeld) StopHold();
     }
 
-    void LateUpdate() {
+    void Update() {
         Rescale();
         CheckHeld();
         CheckLink();
@@ -130,24 +118,24 @@ public class Star : MonoBehaviour {
 
     void CheckHeld() {
         if (isHeld) {
-            if (heldStar != this) {
-                heldStar = this;
+            if (Mouse.holding != this) {
+                Mouse.holding = this;
                 transform.parent = null;
                 AnchorClones();
             }
             MoveClones();
-            Vector3 screenPoint = Camera.main.WorldToScreenPoint(transform.position);
-            transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenPoint.z));
+            float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
+            transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
             UpdateLinks();
-        } else if (heldStar == this) StopHold();
+        } else if (Mouse.holding == this) StopHold();
     }
 
     void StopHold() {
         hovered = false;
-        focused = null;
+        Mouse.hover = null;
         rend.sharedMaterial = mat;
-        if (heldStar == this) {
-            heldStar = null;
+        if (Mouse.holding == this) {
+            Mouse.holding = null;
             ChangeInstance();
             ReleaseClones();
         }
@@ -196,46 +184,38 @@ public class Star : MonoBehaviour {
     void CheckLink() {
         if (hovered) {
             if (Input.GetMouseButtonDown(1)) {
-                linking = this;
-                linkLoop = worldInstance.loop;
+                CreateLink();
             }
             if (Input.GetMouseButtonUp(1)) {
-                if (linking && linking != this) {
-                    linked.Add(linking);
-                    int diff = linking.worldInstance.id - worldInstance.id;
-                    BuildLink(linking, diff);
-                    if (wrapper.repeatLinks) LinkClones(linking.id, diff);
+                if (Mouse.linking && Mouse.linking != this) {
+                    linked.Add(Mouse.linking);
+                    ConnectLink(this);
                     UpdateLinks();
-                    linking = null;
+                    Mouse.linking = null;
+                } else {
+                    Mouse.BreakLink();
                 }
             }
         }
-        if (Input.GetMouseButtonUp(1) && focused == null) {
-            linking = null;
-        }
     }
 
-    /// <summary>
-    /// Links to the specified star in the instance set at the specified distance.
-    /// </summary>
-    /// <param name="starID"> The ID of the star to link to. </param>
-    /// <param name="diff"> The difference between the current instance and the desired one. </param>
-    public void LinkTo(int starID, int diff) {
-        int worldID = InverseInstanceID(diff);
-        Star target = wrapper.worldInstances[worldID].stars[starID];
-        linked.Add(target);
-        BuildLink(target, diff);
+    void CreateLink() {
+        Mouse.linking = this;
+        Mouse.link = Instantiate(link);
+        Mouse.link.transform.parent = transform;
+        Mouse.link.transform.position = transform.position;
+        Mouse.link.originLoop = worldInstance.loop;
+        Mouse.link.connected = false;
     }
 
-    void BuildLink(Star target, int diff) {
-        Link newlink = Instantiate(link);
-        newlink.transform.parent = transform;
-        newlink.transform.position = transform.position;
-        newlink.target = target;
-        newlink.targetLoop = linkLoop;
-        newlink.originLoop = worldInstance.loop;
-        target.targeted.Add(newlink);
-        links.Add(newlink);
+    void ConnectLink(Star target) {
+        Link newLink = Mouse.link;
+        newLink.target = target;
+        newLink.targetLoop = worldInstance.loop;
+        newLink.connected = true;
+        target.targeted.Add(newLink);
+        newLink.parent.links.Add(newLink);
+        Mouse.link = null;
     }
 
     void UpdateLinks() {
@@ -245,17 +225,30 @@ public class Star : MonoBehaviour {
 
     void UpdateOriginPoints() {
         foreach (Link link in links) 
-            link.originLoop = wrapper.currentInstance.loop;
+            link.originLoop = link.isVisible ? wrapper.currentInstance.loop : link.originLoop;
     }
 
     void UpdateTargetPoints() {
         foreach (Link link in targeted) 
-            link.targetLoop = wrapper.currentInstance.loop;
+            link.targetLoop = link.isVisible ? wrapper.currentInstance.loop : link.targetLoop;
     }
 
     #endregion
 
     #region CloneMethods
+    
+    void GetAllClones() {
+        clones = new Star[wrapper.worldInstances.Count - 1];
+
+        for (int i = 0, j = 0; i < clones.Length + 1; i++, j++) {
+            if (i == worldInstance.id) {
+                j--;
+                continue;
+            }
+            Star clone = wrapper.worldInstances[i].stars[id];
+            clones[j] = clone;
+        }
+    }
 
     void AnchorClones() {
         foreach (Star clone in clones) {
@@ -278,25 +271,6 @@ public class Star : MonoBehaviour {
     void SetNewCloneInstance(int diff) {
         foreach (Star clone in clones) {
             clone.SetNewInstance(diff);
-        }
-    }
-
-    void LinkClones(int starid, int diff) {
-        foreach (Star clone in clones) {
-            clone.LinkTo(starid, diff);
-        }
-    }
-
-    void GetAllClones() {
-        clones = new Star[wrapper.worldInstances.Count - 1];
-
-        for (int i=0, j=0; i < clones.Length + 1; i++, j++) {
-            if (i == worldInstance.id) {
-                j--;
-                continue;
-            }
-            Star clone = wrapper.worldInstances[i].stars[id];
-            clones[j] = clone;
         }
     }
 

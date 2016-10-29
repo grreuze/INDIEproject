@@ -1,36 +1,48 @@
 ﻿using UnityEngine;
 
 public class Link : MonoBehaviour {
-    
+
+    public Star parent;
     public Star target;
     public int targetLoop;
     public int originLoop;
-
-    Star parent;
+    public bool connected;
+    
+    /// <summary>
+    /// Returns whether or not the Link is currently visible by the player.
+    /// </summary>
+    public bool isVisible {
+        get { return (origin != end) || (origin == end && end == MetaPosition.InRange); }
+    }
+    enum MetaPosition { InRange, External, Internal }
+    MetaPosition origin, end;
     LineRenderer line;
-    WorldWrapper wrapper;
 
     WorldInstance worldInstance {
         get { return parent.worldInstance; }
     }
 
     Vector3 originPosition {
-        get { return GetMetaPosition(transform.position, originLoop, worldInstance.loop); }
+        get { return GetMetaPosition(transform.position, ref origin, originLoop, worldInstance.loop); }
     }
 
     Vector3 targetPosition {
-        get { return GetMetaPosition(target.transform.position, targetLoop, target.worldInstance.loop); }
+        get { return GetMetaPosition(target.transform.position, ref end, targetLoop, target.worldInstance.loop); }
     }
 
     void Start() {
         line = GetComponent<LineRenderer>();
         parent = transform.parent.GetComponent<Star>();
-        wrapper = WorldWrapper.singleton;
     }
 
-    void Update() {
+    void LateUpdate() {
         line.SetPosition(0, originPosition);
-        line.SetPosition(1, targetPosition);
+        if (connected)
+            line.SetPosition(1, targetPosition);
+        else {
+            float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
+            line.SetPosition(1, Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth)));
+        }
     }
 
     /// <summary>
@@ -40,12 +52,16 @@ public class Link : MonoBehaviour {
     /// <param name="loop"> The loop of the desired point. </param>
     /// <param name="worldLoop"> The loop of the world instance containing the desired point. </param>
     /// <returns> The actual world position the point is at. </returns>
-    Vector3 GetMetaPosition(Vector3 point, int loop, int worldLoop) {
-        if (!wrapper.repeatLinks && worldLoop > loop)
-            return point.normalized * 1000; // Position at the outside of the instanciated worlds
-        else if (!wrapper.repeatLinks && worldLoop < loop)
-            return Vector3.zero; // Position inside the center of the world
-        else
-            return point; // Position of the actual instanciated point
+    Vector3 GetMetaPosition(Vector3 point, ref MetaPosition pos, int loop, int worldLoop) {
+        if (worldLoop > loop) {
+            pos = MetaPosition.External;
+            return point.normalized * 1000;
+        } else if (worldLoop < loop) {
+            pos = MetaPosition.Internal;
+            return Vector3.zero;
+        } else {
+            pos = MetaPosition.InRange;
+            return point;
+        }
     }
 }

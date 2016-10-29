@@ -14,8 +14,6 @@ public class WorldWrapper : MonoBehaviour {
 
     public static WorldWrapper singleton;
 
-    public bool repeatLinks;
-
     /// <summary>
     /// The ID of the instance the camera is currently in.
     /// </summary>
@@ -55,9 +53,13 @@ public class WorldWrapper : MonoBehaviour {
         worldInstances[3].name = "WorldInstance [3]";
     }
 
-    public void Zoom() {
+    /// <summary>
+    /// Zooms in the World at the specified value
+    /// </summary>
+    /// <param name="value"> The value of the Zoom to perform </param>
+    public void Zoom(float value) {
         for (int i = 0; i < worldInstances.Count; i++) {
-            worldInstances[i].transform.localScale += Input.GetAxis("Vertical") * worldInstances[i].transform.localScale * scaleSpeed;
+            worldInstances[i].transform.localScale += value * worldInstances[i].transform.localScale * scaleSpeed;
 
             worldInstances[i].name = "WorldInstance [" + i + "]";
 
