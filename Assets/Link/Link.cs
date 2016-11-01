@@ -1,13 +1,17 @@
 ﻿using UnityEngine;
 
+[RequireComponent(typeof(BoxCollider))]
 public class Link : MonoBehaviour {
+
+    [SerializeField, Tooltip("The start and end width of the line renderer")]
+    float width = 0.2f;
 
     public Star parent;
     public Star target;
     public int targetLoop;
     public int originLoop;
     public bool connected;
-    
+
     /// <summary>
     /// Returns whether or not the Link is currently visible by the player.
     /// </summary>
@@ -17,6 +21,8 @@ public class Link : MonoBehaviour {
     enum MetaPosition { InRange, External, Internal }
     MetaPosition origin, end;
     LineRenderer line;
+    BoxCollider col;
+    bool destroyed;
 
     WorldInstance worldInstance {
         get { return parent.worldInstance; }
@@ -33,16 +39,44 @@ public class Link : MonoBehaviour {
     void Start() {
         line = GetComponent<LineRenderer>();
         parent = transform.parent.GetComponent<Star>();
+        col = GetComponent<BoxCollider>();
+        line.SetWidth(width, width);
     }
 
-    void LateUpdate() {
+    void LateUpdate() { // We should change it so that links only update when necessary
         line.SetPosition(0, originPosition);
-        if (connected)
+        if (connected) {
             line.SetPosition(1, targetPosition);
-        else {
+            transform.LookAt(targetPosition);
+            col.center = Vector3.forward * (Vector3.Distance(originPosition, targetPosition) / 2);
+            col.size = new Vector3(width, width, Vector3.Distance(originPosition, targetPosition));
+        } else {
             float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
             line.SetPosition(1, Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth)));
         }
+    }
+
+    void OnMouseEnter() {
+        if (Mouse.breakLinkMode && !destroyed) {
+            destroyed = true;
+            ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
+            ps.transform.localEulerAngles = 90 * Vector3.up;
+            ps.transform.localPosition = Vector3.forward * (Vector3.Distance(originPosition, targetPosition) / 2);
+
+            ParticleSystem.ShapeModule shape = ps.shape;
+            shape.radius = Vector3.Distance(originPosition, targetPosition) / 2;
+
+            ps.Play();
+            line.enabled = false;
+            Invoke("DestroyLink", ps.startLifetime);
+        }
+    }
+
+    void DestroyLink() {
+        parent.links.Remove(this);
+        target.targeted.Remove(this);
+        // We should also remove the loops containing this link
+        Destroy(gameObject); // We should probably do object pooling for links
     }
 
     /// <summary>

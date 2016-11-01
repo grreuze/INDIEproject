@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-[ExecuteInEditMode]
 public class Star : MonoBehaviour {
 
     #region Properties
@@ -14,7 +13,10 @@ public class Star : MonoBehaviour {
     public Color currentColor;
 
     public WorldInstance worldInstance;
-    
+
+    public List<Link> links = new List<Link>();
+    public List<Link> targeted = new List<Link>();
+
     [SerializeField]
     float scaleFactor, minScale = 0.1f, maxScale = 1;
     [SerializeField]
@@ -26,9 +28,6 @@ public class Star : MonoBehaviour {
     Vector3 parentScale;
     Transform worldTransform;
     Star[] clones;
-    List<Star> linked = new List<Star>();
-    List<Link> links = new List<Link>();
-    List<Link> targeted = new List<Link>();
     bool hovered;
 
     /// <summary>
@@ -65,7 +64,7 @@ public class Star : MonoBehaviour {
     }
 
     void Update() {
-        Rescale();
+        Rescale(); // We should only rescale if zooming / dezooming / anchored
         CheckHeld();
         CheckLink();
 
@@ -184,11 +183,10 @@ public class Star : MonoBehaviour {
     void CheckLink() {
         if (hovered) {
             if (Input.GetMouseButtonDown(1)) {
-                CreateLink();
+                CreateLink(this);
             }
             if (Input.GetMouseButtonUp(1)) {
-                if (Mouse.linking && Mouse.linking != this) {
-                    linked.Add(Mouse.linking);
+                if (Mouse.linking && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
                     ConnectLink(this);
                     UpdateLinks();
                     Mouse.linking = null;
@@ -199,8 +197,8 @@ public class Star : MonoBehaviour {
         }
     }
 
-    void CreateLink() {
-        Mouse.linking = this;
+    void CreateLink(Star origin) {
+        Mouse.linking = origin;
         Mouse.link = Instantiate(link);
         Mouse.link.transform.parent = transform;
         Mouse.link.transform.position = transform.position;
@@ -216,6 +214,15 @@ public class Star : MonoBehaviour {
         target.targeted.Add(newLink);
         newLink.parent.links.Add(newLink);
         Mouse.link = null;
+        CircuitManager.CheckCircuit(target);
+    }
+
+    bool IsLinkedTo(Star star) {
+        foreach (Link link in links)
+            if (link.target == star) return true;
+        foreach (Link link in targeted)
+            if (link.parent == star) return true;
+        return false;
     }
 
     void UpdateLinks() {

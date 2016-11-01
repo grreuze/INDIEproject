@@ -22,9 +22,14 @@ public static class Mouse {
     /// </summary>
     public static Link link;
 
+    public static bool breakLinkMode;
+
+    /// <summary>
+    /// Breaks the link tied to the mouse.
+    /// </summary>
     public static void BreakLink() {
         linking = null;
-        if (link) MonoBehaviour.Destroy(link.gameObject);
+        if (link) MonoBehaviour.Destroy(link.gameObject); // We should probably do object pooling for the links
     }
 
 }

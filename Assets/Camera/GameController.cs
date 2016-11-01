@@ -41,13 +41,18 @@ public class GameController : MonoBehaviour {
 
         } else Cursor.visible = true;
         
-        if (Input.GetMouseButtonUp(1) && Mouse.hover == null)
-            Mouse.BreakLink();
-
         if (Input.GetMouseButton(2) && Input.GetAxis("Mouse Y") != 0)
             wrapper.Zoom(Input.GetAxis("Mouse Y"));
         if (Input.GetAxis("Mouse ScrollWheel") != 0)
             wrapper.Zoom(Input.GetAxis("Mouse ScrollWheel") * scrollSpeed);
+
+        if (Input.GetMouseButtonDown(1) && Mouse.hover == null)
+            Mouse.breakLinkMode = true;
+
+        if (Input.GetMouseButtonUp(1)) {
+            if (Mouse.hover == null) Mouse.BreakLink();
+            Mouse.breakLinkMode = false;
+        }
 
         // Apply Rotation
         if (invertY) pitch *= -1;
