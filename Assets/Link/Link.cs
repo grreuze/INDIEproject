@@ -23,6 +23,12 @@ public class Link : MonoBehaviour {
     LineRenderer line;
     BoxCollider col;
     bool destroyed;
+    /// <summary>
+    /// The length of the link.
+    /// </summary>
+    float length {
+        get { return Vector3.Distance(originPosition, targetPosition); }
+    }
 
     WorldInstance worldInstance {
         get { return parent.worldInstance; }
@@ -41,15 +47,19 @@ public class Link : MonoBehaviour {
         parent = transform.parent.GetComponent<Star>();
         col = GetComponent<BoxCollider>();
         line.SetWidth(width, width);
+        transform.localPosition = Vector3.zero;
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
         line.SetPosition(0, originPosition);
         if (connected) {
             line.SetPosition(1, targetPosition);
+
             transform.LookAt(targetPosition);
-            col.center = Vector3.forward * (Vector3.Distance(originPosition, targetPosition) / 2);
-            col.size = new Vector3(width, width, Vector3.Distance(originPosition, targetPosition));
+            col.center = Vector3.forward * (length / 2);
+            col.size = new Vector3(width, width, length);
+            // We need to take local scale into account when changing the size of the collider
+
         } else {
             float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
             line.SetPosition(1, Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth)));
@@ -61,10 +71,13 @@ public class Link : MonoBehaviour {
             destroyed = true;
             ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
             ps.transform.localEulerAngles = 90 * Vector3.up;
-            ps.transform.localPosition = Vector3.forward * (Vector3.Distance(originPosition, targetPosition) / 2);
+            ps.transform.localPosition = Vector3.forward * (length / 2);
+
+            ParticleSystem.EmissionModule emission = ps.emission;
+            emission.rate = 100 * length;
 
             ParticleSystem.ShapeModule shape = ps.shape;
-            shape.radius = Vector3.Distance(originPosition, targetPosition) / 2;
+            shape.radius = length / 2;
 
             ps.Play();
             line.enabled = false;

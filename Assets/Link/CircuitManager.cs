@@ -51,6 +51,8 @@ public static class CircuitManager {
         
         Loop newLoop = new Loop(loop.ToArray());
 
+        // We should avoid generating a loop containing only stars that are already in a loop
+
         if (newLoop.AlreadyExists())
             return; //don't generate a loop if it already exists;
         else

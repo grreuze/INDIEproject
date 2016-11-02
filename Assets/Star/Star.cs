@@ -188,7 +188,7 @@ public class Star : MonoBehaviour {
             if (Input.GetMouseButtonUp(1)) {
                 if (Mouse.linking && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
                     ConnectLink(this);
-                    UpdateLinks();
+                    //UpdateLinks();
                     Mouse.linking = null;
                 } else {
                     Mouse.BreakLink();
@@ -209,7 +209,8 @@ public class Star : MonoBehaviour {
     void ConnectLink(Star target) {
         Link newLink = Mouse.link;
         newLink.target = target;
-        newLink.targetLoop = worldInstance.loop;
+        newLink.targetLoop = target.worldInstance.loop;
+        print("Target loop: " + target.worldInstance.loop);
         newLink.connected = true;
         target.targeted.Add(newLink);
         newLink.parent.links.Add(newLink);
