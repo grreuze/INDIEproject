@@ -171,6 +171,9 @@ public class Star : MonoBehaviour {
     /// </summary>
     /// <param name="diff"> The difference between the current instance and the desired one. </param>
     public void SetNewInstance(int diff) {
+        if  (worldInstance.id == wrapper.numberOfInstances - 1) {
+            transform.localScale = Vector3.one * 100;
+        }
         int newid = InverseInstanceID(diff);
         transform.parent = wrapper.worldInstances[newid].transform;
         GetWorldInstance();
@@ -188,7 +191,6 @@ public class Star : MonoBehaviour {
             if (Input.GetMouseButtonUp(1)) {
                 if (Mouse.linking && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
                     ConnectLink(this);
-                    //UpdateLinks();
                     Mouse.linking = null;
                 } else {
                     Mouse.BreakLink();
@@ -210,7 +212,6 @@ public class Star : MonoBehaviour {
         Link newLink = Mouse.link;
         newLink.target = target;
         newLink.targetLoop = target.worldInstance.loop;
-        print("Target loop: " + target.worldInstance.loop);
         newLink.connected = true;
         target.targeted.Add(newLink);
         newLink.parent.links.Add(newLink);

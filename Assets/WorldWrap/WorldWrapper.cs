@@ -6,7 +6,8 @@ public class WorldWrapper : MonoBehaviour {
     [SerializeField]
     WorldInstance ogWorldInstance;
     public List<WorldInstance> worldInstances;
-
+    public int numberOfInstances;
+    [Tooltip("The distance between each instance.")]
     public float scaleFactor = 10;
     public float scaleSpeed = 0.05f;
 
@@ -51,6 +52,8 @@ public class WorldWrapper : MonoBehaviour {
         worldInstances.Add(Instantiate(ogWorldInstance));
         worldInstances[3].transform.localScale = ogWorldInstance.transform.localScale * scaleFactor;
         worldInstances[3].name = "WorldInstance [3]";
+
+        numberOfInstances = worldInstances.Count;
     }
 
     /// <summary>

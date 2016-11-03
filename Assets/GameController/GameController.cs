@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 
 [AddComponentMenu("LuxVertigo/GameController")]
 public class GameController : MonoBehaviour {
@@ -14,6 +15,8 @@ public class GameController : MonoBehaviour {
     float pitch = 0.0f;
     float yaw = 0.0f;
 
+    Vector2 momentum;
+
     void Start() {
         Vector3 angles = transform.eulerAngles;
         pitch = angles.y;
@@ -24,23 +27,31 @@ public class GameController : MonoBehaviour {
 
     void Update() {
         // Keyboard Controls
-        pitch = Input.GetAxis("Horizontal") * xSpeed * 0.02f;
-        if (Input.GetKey(KeyCode.LeftShift) && Input.GetAxis("Vertical") != 0) {
+        if (Input.GetAxis("Horizontal") != 0) {
+            pitch = Input.GetAxis("Horizontal") * xSpeed * 0.02f;
+        }
+
+        if (Input.GetAxis("Vertical") != 0)
             wrapper.Zoom(Input.GetAxis("Vertical"));
-            yaw = 0;
-        } else
-            yaw = Input.GetAxis("Vertical") * ySpeed * 0.02f;
 
         // Mouse Controls
+        if (Input.GetMouseButtonUp(0) && !Cursor.visible)
+            StartCoroutine(Momentum());
+
         if (Input.GetMouseButton(0) && Mouse.hover == null && Mouse.holding == null) {
+            StopAllCoroutines();
+
             pitch = Input.GetAxis("Mouse X") * xSpeed * 0.02f * -1;
-            
             yaw = Input.GetAxis("Mouse Y") * ySpeed * 0.02f * -1;
+
+            momentum.x = Input.GetAxis("Mouse X");
+            momentum.y = Input.GetAxis("Mouse Y");
 
             Cursor.visible = false;
 
         } else Cursor.visible = true;
-        
+
+
         if (Input.GetMouseButton(2) && Input.GetAxis("Mouse Y") != 0)
             wrapper.Zoom(Input.GetAxis("Mouse Y"));
         if (Input.GetAxis("Mouse ScrollWheel") != 0)
@@ -58,5 +69,19 @@ public class GameController : MonoBehaviour {
         if (invertY) pitch *= -1;
         if (!invertX) yaw *= -1;
         wrapper.Rotate(new Vector3(yaw, pitch, 0));
+    }
+
+    IEnumerator Momentum() {
+        float duration = 4;
+
+        for (float i = 0; i < duration; i += Time.deltaTime) {
+
+            float t = i / duration;
+            pitch = Mathf.Lerp(-momentum.x, 0, t);
+            yaw   = Mathf.Lerp(-momentum.y, 0, t);
+
+            yield return null;
+        }
+        pitch = yaw = 0;
     }
 }

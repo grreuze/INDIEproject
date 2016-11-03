@@ -74,7 +74,7 @@ public class Link : MonoBehaviour {
             ps.transform.localPosition = Vector3.forward * (length / 2);
 
             ParticleSystem.EmissionModule emission = ps.emission;
-            emission.rate = 100 * length;
+            emission.rate = 70 * length;
 
             ParticleSystem.ShapeModule shape = ps.shape;
             shape.radius = length / 2;
