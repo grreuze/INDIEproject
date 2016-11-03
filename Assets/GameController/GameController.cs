@@ -10,11 +10,14 @@ public class GameController : MonoBehaviour {
 
     public bool invertX, invertY;
 
+    public float screenCenterMargin = 20;
+    public float screenBorderMargin = 10;
+
     WorldWrapper wrapper;
 
     float pitch = 0.0f;
     float yaw = 0.0f;
-
+    float zoomValue;
     Vector2 momentum;
 
     void Start() {
@@ -35,6 +38,20 @@ public class GameController : MonoBehaviour {
             wrapper.Zoom(Input.GetAxis("Vertical"));
 
         // Mouse Controls
+        if (Input.mousePosition.x > (Screen.width / 2) - screenCenterMargin && Input.mousePosition.x < (Screen.width / 2) + screenCenterMargin
+            && Input.mousePosition.y > (Screen.height / 2) - screenCenterMargin && Input.mousePosition.y < (Screen.height / 2) + screenCenterMargin) {
+            zoomValue += zoomValue >= 1 ? 0 : Time.deltaTime;
+        } else if (zoomValue > 0)
+            zoomValue -= Time.deltaTime;
+
+        if (Input.mousePosition.x < screenBorderMargin || Input.mousePosition.y < screenBorderMargin || 
+            Input.mousePosition.x > Screen.width - screenBorderMargin || Input.mousePosition.y > Screen.height - screenBorderMargin) {
+            zoomValue -= zoomValue <= -1 ? 0 : Time.deltaTime;
+        } else if (zoomValue < 0)
+            zoomValue += Time.deltaTime;
+        
+        wrapper.Zoom(zoomValue);
+
         if (Input.GetMouseButtonUp(0) && !Cursor.visible)
             StartCoroutine(Momentum());
 
