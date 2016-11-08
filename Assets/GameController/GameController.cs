@@ -12,6 +12,7 @@ public class GameController : MonoBehaviour {
 
     public float screenCenterMargin = 20;
     public float screenBorderMargin = 10;
+    public float zoomSpeed, zoomStopSpeed;
 
     WorldWrapper wrapper;
 
@@ -38,19 +39,6 @@ public class GameController : MonoBehaviour {
             wrapper.Zoom(Input.GetAxis("Vertical"));
 
         // Mouse Controls
-        if (Input.mousePosition.x > (Screen.width / 2) - screenCenterMargin && Input.mousePosition.x < (Screen.width / 2) + screenCenterMargin
-            && Input.mousePosition.y > (Screen.height / 2) - screenCenterMargin && Input.mousePosition.y < (Screen.height / 2) + screenCenterMargin) {
-            zoomValue += zoomValue >= 1 ? 0 : Time.deltaTime;
-        } else if (zoomValue > 0)
-            zoomValue -= Time.deltaTime;
-
-        if (Input.mousePosition.x < screenBorderMargin || Input.mousePosition.y < screenBorderMargin || 
-            Input.mousePosition.x > Screen.width - screenBorderMargin || Input.mousePosition.y > Screen.height - screenBorderMargin) {
-            zoomValue -= zoomValue <= -1 ? 0 : Time.deltaTime;
-        } else if (zoomValue < 0)
-            zoomValue += Time.deltaTime;
-        
-        wrapper.Zoom(zoomValue);
 
         if (Input.GetMouseButtonUp(0) && !Cursor.visible)
             StartCoroutine(Momentum());
@@ -66,7 +54,26 @@ public class GameController : MonoBehaviour {
 
             Cursor.visible = false;
 
-        } else Cursor.visible = true;
+        } else {
+            Cursor.visible = true;
+
+            if (Input.mousePosition.x > (Screen.width / 2) - screenCenterMargin && Input.mousePosition.x < (Screen.width / 2) + screenCenterMargin
+                && Input.mousePosition.y > (Screen.height / 2) - screenCenterMargin && Input.mousePosition.y < (Screen.height / 2) + screenCenterMargin) {
+                zoomValue += zoomValue >= 1 ? 0 : Time.deltaTime * zoomSpeed;
+            } else if (zoomValue > 0) {
+                zoomValue -= Time.deltaTime * zoomStopSpeed;
+                if (zoomValue < 0) zoomValue = 0;
+            }
+
+            if (Input.mousePosition.x < screenBorderMargin || Input.mousePosition.y < screenBorderMargin ||
+                Input.mousePosition.x > Screen.width - screenBorderMargin || Input.mousePosition.y > Screen.height - screenBorderMargin) {
+                zoomValue -= zoomValue <= -1 ? 0 : Time.deltaTime * zoomSpeed;
+            } else if (zoomValue < 0) {
+                zoomValue += Time.deltaTime * zoomStopSpeed;
+                if (zoomValue > 0) zoomValue = 0;
+            }
+            wrapper.Zoom(zoomValue);
+        }
 
 
         if (Input.GetMouseButton(2) && Input.GetAxis("Mouse Y") != 0)

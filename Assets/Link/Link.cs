@@ -4,7 +4,10 @@
 public class Link : MonoBehaviour {
 
     [SerializeField, Tooltip("The start and end width of the line renderer")]
-    float width = 0.2f;
+    float _width = 0.2f;
+    float width {
+        get { return _width / transform.lossyScale.x; }
+    }
 
     public Star parent;
     public Star target;
