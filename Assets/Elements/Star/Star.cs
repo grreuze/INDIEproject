@@ -1,12 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 
-public class Star : MonoBehaviour {
+public class Star : Element {
 
     #region Properties
     
     public enum Color { White, Red, Cyan, Purple, Yellow }
 
+    [Header("Star Properties")]
     public Material mat;
     public bool anchored;
     public int id;
@@ -16,16 +17,13 @@ public class Star : MonoBehaviour {
 
     public List<Link> links = new List<Link>();
     public List<Link> targeted = new List<Link>();
-
-    [SerializeField]
-    float scaleFactor, minScale = 0.1f, maxScale = 1;
+    
     [SerializeField]
     Material hoverMat = null;
     [SerializeField]
     Link link;
 
     Renderer rend;
-    Vector3 parentScale;
     Transform worldTransform;
     Star[] clones;
     bool hovered;
@@ -41,7 +39,7 @@ public class Star : MonoBehaviour {
     
     #endregion
 
-    #region DefaultMethods
+    #region MonoBehaviour Methods
 
     void Start() {
         rend = GetComponent<Renderer>();
@@ -85,34 +83,6 @@ public class Star : MonoBehaviour {
         worldTransform = transform.parent;
         worldInstance = worldTransform.GetComponent<WorldInstance>();
         worldInstance.stars[id] = this;
-    }
-
-    Vector3 GetParentScale() {
-        Vector3 sf = Vector3.one;
-        Transform parent = transform.parent ?? null;
-
-        while (parent) {
-            sf.x *= 1 / parent.localScale.x;
-            sf.y *= 1 / parent.localScale.y;
-            sf.z *= 1 / parent.localScale.z;
-
-            parent = parent.parent ?? null;
-        }
-        return sf;
-    }
-
-    void Rescale() {
-        parentScale = GetParentScale();
-        Vector3 scale = Vector3.one * Vector3.Distance(Vector3.zero, transform.position) * scaleFactor;
-        scale.x *= parentScale.x;
-        scale.y *= parentScale.y;
-        scale.z *= parentScale.z;
-
-        scale.x = Mathf.Clamp(scale.x, minScale * parentScale.x, maxScale * parentScale.x);
-        scale.y = Mathf.Clamp(scale.y, minScale * parentScale.y, maxScale * parentScale.y);
-        scale.z = Mathf.Clamp(scale.z, minScale * parentScale.z, maxScale * parentScale.z);
-
-        transform.localScale = scale;
     }
 
     void CheckHeld() {
