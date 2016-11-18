@@ -24,8 +24,9 @@ public class WorldInstance : MonoBehaviour {
             newStar.transform.parent = transform;
             newStar.name = "Star " + i;
             newStar.id = i;
-            newStar.currentColor = (Star.Color) Random.Range(0, starMaterials.Length);
-            newStar.mat = starMaterials[(int)newStar.currentColor];
+            newStar.chroma = Chroma.white;
+            //newStar.currentColor = (Star.Color) Random.Range(0, starMaterials.Length);
+            //newStar.mat = starMaterials[(int)newStar.currentColor];
             stars[i] = newStar;
         }
         WorldWrapper.singleton.Generate();

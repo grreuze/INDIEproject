@@ -2,7 +2,12 @@
 
 public abstract class Element : MonoBehaviour {
 
-    [SerializeField, Header("Element Properties")]
+    [Header("Element Properties")]
+
+    public WorldInstance worldInstance;
+    public Chroma chroma;
+
+    [SerializeField]
     float scaleFactor = 0.2f;
     [SerializeField]
     MinMax scale;

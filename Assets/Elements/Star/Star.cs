@@ -5,15 +5,10 @@ public class Star : Element {
 
     #region Properties
     
-    public enum Color { White, Red, Cyan, Purple, Yellow }
-
     [Header("Star Properties")]
     public Material mat;
     public bool anchored;
     public int id;
-    public Color currentColor;
-
-    public WorldInstance worldInstance;
 
     public List<Link> links = new List<Link>();
     public List<Link> targeted = new List<Link>();
