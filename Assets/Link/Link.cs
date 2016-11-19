@@ -3,34 +3,53 @@
 [RequireComponent(typeof(BoxCollider))]
 public class Link : MonoBehaviour {
 
+    #region Properties
+
     [SerializeField, Tooltip("The start and end width of the line renderer")]
-    float _width = 0.2f;
+    float _width = 0.5f;
     float width {
         get { return _width / transform.lossyScale.x; }
     }
 
-    public Star parent;
-    public Star target;
+    public Element parent;
+    public Element target;
     public int targetLoop;
     public int originLoop;
     public bool connected;
+
+    [SerializeField]
+    bool adjustWidth;
 
     /// <summary>
     /// Returns whether or not the Link is currently visible by the player.
     /// </summary>
     public bool isVisible {
-        get { return (origin != end) || (origin == end && end == MetaPosition.InRange); }
+        get { return (parentMetaPos != targetMetaPos) || (parentMetaPos == targetMetaPos && targetMetaPos == MetaPosition.InRange); }
     }
+
     enum MetaPosition { InRange, External, Internal }
-    MetaPosition origin, end;
+    MetaPosition parentMetaPos, targetMetaPos;
     LineRenderer line;
     BoxCollider col;
     bool destroyed;
+
     /// <summary>
-    /// The length of the link.
+    /// The length of the link. Distance between originPosition and targetPosition.
     /// </summary>
     float length {
         get { return Vector3.Distance(originPosition, targetPosition); }
+    }
+
+    float startWidth {
+        get {
+            return parentMetaPos == MetaPosition.Internal ? 0 : parent.transform.lossyScale.x * width * transform.localScale.x;
+        }
+    }
+
+    float endWidth {
+        get {
+            return targetMetaPos == MetaPosition.Internal ? 0 : target.transform.lossyScale.x * width * transform.localScale.x;
+        }
     }
 
     WorldInstance worldInstance {
@@ -38,16 +57,18 @@ public class Link : MonoBehaviour {
     }
 
     Vector3 originPosition {
-        get { return GetMetaPosition(transform.position, ref origin, originLoop, worldInstance.loop); }
+        get { return GetMetaPosition(transform.position, ref parentMetaPos, originLoop, worldInstance.loop); }
     }
 
     Vector3 targetPosition {
-        get { return GetMetaPosition(target.transform.position, ref end, targetLoop, target.worldInstance.loop); }
+        get { return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, target.worldInstance.loop); }
     }
+
+    #endregion
 
     void Start() {
         line = GetComponent<LineRenderer>();
-        parent = transform.parent.GetComponent<Star>();
+        parent = transform.parent.GetComponent<Element>();
         col = GetComponent<BoxCollider>();
         line.SetWidth(width, width);
         transform.localPosition = Vector3.zero;
@@ -55,13 +76,16 @@ public class Link : MonoBehaviour {
 
     void LateUpdate() { // We should change it so that links only update when necessary
         line.SetPosition(0, originPosition);
+        transform.position = originPosition;
         if (connected) {
             line.SetPosition(1, targetPosition);
 
             transform.LookAt(targetPosition);
             col.center = Vector3.forward * (length / 2);
             col.size = new Vector3(width, width, length);
-            // We need to take local scale into account when changing the size of the collider
+            // Collider size seems to be affected by some kind of floating point approximation flaw using Vector3.Distance?
+
+            if (adjustWidth) line.SetWidth(startWidth, endWidth);
 
         } else {
             float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;

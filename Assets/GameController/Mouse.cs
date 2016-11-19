@@ -3,19 +3,19 @@
 public static class Mouse {
 
     /// <summary>
-    /// The star that the player is currently hovering, if any.
+    /// The element that the player is currently hovering, if any.
     /// </summary>
-    public static Star hover;
+    public static Element hover;
 
     /// <summary>
-    /// The star that the player is currently holding, if any.
+    /// The element that the player is currently holding, if any.
     /// </summary>
-    public static Star holding;
+    public static Element holding;
 
     /// <summary>
-    /// The star that the player is currently linking, if any.
+    /// The element that the player is currently linking, if any.
     /// </summary>
-    public static Star linking;
+    public static Element linking;
 
     /// <summary>
     /// The link tied to the mouse, if any.

@@ -3,34 +3,34 @@ using System.Collections.Generic;
 
 public static class CircuitManager {
     
-    public static void CheckCircuit(Star star) {
-        List<Star> path = new List<Star>();
-        CheckStar(star, path);
+    public static void CheckCircuit(Element element) {
+        List<Element> path = new List<Element>();
+        CheckStar(element, path);
     }
     
-    static void CheckStar(Star star, List<Star> currentPath) {
-        currentPath.Add(star);
+    static void CheckStar(Element element, List<Element> currentPath) {
+        currentPath.Add(element);
 
-        if (star.links.Count > 0) {
-            foreach (Link link in star.links)
+        if (element.links.Count > 0) {
+            foreach (Link link in element.links)
                 CheckIfPathContains(currentPath, link.target);
         }
-        if (star.targeted.Count > 0) {
-            foreach (Link link in star.targeted)
+        if (element.targeted.Count > 0) {
+            foreach (Link link in element.targeted)
                 CheckIfPathContains(currentPath, link.parent);
         }
     }
 
-    static void CheckIfPathContains(List<Star> path, Star star) {
+    static void CheckIfPathContains(List<Element> path, Element element) {
 
-        if (path.Contains(star)) {
-            if (path.IndexOf(star) == path.Count - 2)
+        if (path.Contains(element)) {
+            if (path.IndexOf(element) == path.Count - 2)
                 return; //this is the star we come from, abort
             else 
-                GenerateLoop(path, star);
-        } else if (star.links.Count + star.targeted.Count > 1) {
-            List<Star> newPath = new List<Star>(path);
-            CheckStar(star, newPath);
+                GenerateLoop(path, element);
+        } else if (element.links.Count + element.targeted.Count > 1) {
+            List<Element> newPath = new List<Element>(path);
+            CheckStar(element, newPath);
         }
     }
 
@@ -38,14 +38,14 @@ public static class CircuitManager {
     /// Generates a loop on the specified path starting and finishing from the specified loop
     /// </summary>
     /// <param name="path"> The path on which the loop is present </param>
-    /// <param name="star"> The star that is used as the starting and ending point of the loop </param>
-    static void GenerateLoop(List<Star> path, Star star) {
-        int loopStart = path.IndexOf(star);
+    /// <param name="element"> The star that is used as the starting and ending point of the loop </param>
+    static void GenerateLoop(List<Element> path, Element element) {
+        int loopStart = path.IndexOf(element);
 
         List<Star> loop = new List<Star>();
 
         for (int i = loopStart; i < path.Count; i++)
-            loop.Add(path[i]);
+            loop.Add((Star)path[i]);
 
         loop.Sort(CompareStars);
         

@@ -1,20 +1,18 @@
 ﻿using UnityEngine;
 
-public class Star : Element {
+public class Prism : Element {
 
     #region Properties
-    
-    [Header("Star Properties")]
+
+    [Header("Prism Properties")]
     public Material mat;
-    public bool anchored;
     public int id;
-    
+
     [SerializeField]
     Material hoverMat = null;
 
     Renderer rend;
-    Star[] clones;
-    
+
     #endregion
 
     #region MonoBehaviour Methods
@@ -23,7 +21,6 @@ public class Star : Element {
         rend = GetComponent<Renderer>();
         rend.sharedMaterial = mat;
         Init();
-        GetAllClones();
     }
 
     void OnMouseEnter() {
@@ -52,15 +49,13 @@ public class Star : Element {
     #endregion
 
     #region Holding Methods
-        
+
     void CheckHeld() {
         if (isHeld) {
             if (Mouse.holding != this) {
                 Mouse.holding = this;
                 transform.parent = null;
-                AnchorClones();
             }
-            MoveClones();
             float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
             transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
             UpdateLinks();
@@ -74,7 +69,6 @@ public class Star : Element {
         if (Mouse.holding == this) {
             Mouse.holding = null;
             ChangeInstance();
-            ReleaseClones();
         }
     }
 
@@ -84,57 +78,10 @@ public class Star : Element {
             transform.parent = worldTransform;
         else {
             SetNewInstance(diff);
-            SetNewCloneInstance(diff);
             UpdateLinks();
         }
     }
-
-    public override void SetNewInstance(int diff) {
-        base.SetNewInstance(diff);
-        worldInstance.stars[id] = this;
-    }
-
+    
     #endregion
-
-    #region CloneMethods
-
-    void GetAllClones() {
-        clones = new Star[wrapper.worldInstances.Count - 1];
-
-        for (int i = 0, j = 0; i < clones.Length + 1; i++, j++) {
-            if (i == worldInstance.id) {
-                j--;
-                continue;
-            }
-            Star clone = wrapper.worldInstances[i].stars[id];
-            clones[j] = clone;
-        }
-    }
-
-    void AnchorClones() {
-        foreach (Star clone in clones) {
-            clone.anchored = true;
-        }
-    }
-
-    void MoveClones() {
-        foreach (Star clone in clones) {
-            clone.transform.localPosition = worldTransform.InverseTransformPoint(transform.position);
-        }
-    }
-
-    void ReleaseClones() {
-        foreach (Star clone in clones) {
-            clone.anchored = false;
-        }
-    }
-
-    void SetNewCloneInstance(int diff) {
-        foreach (Star clone in clones) {
-            clone.SetNewInstance(diff);
-        }
-    }
-
-    #endregion
-
+    
 }
