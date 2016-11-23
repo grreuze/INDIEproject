@@ -14,6 +14,8 @@ public class GameController : MonoBehaviour {
     public float screenBorderMargin = 10;
     public float zoomSpeed, zoomStopSpeed;
 
+    public Prism tempPrefabPrism;
+
     WorldWrapper wrapper;
 
     float pitch = 0.0f;
@@ -75,6 +77,12 @@ public class GameController : MonoBehaviour {
             wrapper.Zoom(zoomValue);
         }
 
+
+        //Creates a Prism with middle click, TO DELETE
+        if(Input.GetMouseButtonUp(2)) {
+            Prism newPrism = (Prism)Instantiate(tempPrefabPrism, Input.mousePosition, Quaternion.identity);
+            newPrism.transform.parent = wrapper.currentInstance.transform;
+        }
 
         if (Input.GetMouseButton(2) && Input.GetAxis("Mouse Y") != 0)
             wrapper.Zoom(Input.GetAxis("Mouse Y"));

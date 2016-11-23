@@ -86,7 +86,7 @@ public abstract class Element : MonoBehaviour {
                 CreateLink(this);
             }
             if (Input.GetMouseButtonUp(1)) {
-                if (Mouse.linking && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
+                if (Mouse.linking && Mouse.linking.GetType() == GetType() && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
                     ConnectLink(this);
                     Mouse.linking = null;
                 } else {

@@ -16,7 +16,7 @@ public class Link : MonoBehaviour {
     public int targetLoop;
     public int originLoop;
     public bool connected;
-
+    
     [SerializeField]
     bool adjustWidth;
 

@@ -42,6 +42,11 @@ public static class CircuitManager {
     static void GenerateLoop(List<Element> path, Element element) {
         int loopStart = path.IndexOf(element);
 
+        if (path[0].GetType() == System.Type.GetType("Prism")) {
+            Debug.Log("Prism Loop");
+            return;
+        }
+
         List<Star> loop = new List<Star>();
 
         for (int i = loopStart; i < path.Count; i++)
