@@ -2,27 +2,37 @@
 using System.Collections.Generic;
 
 public static class CircuitManager {
-    
+
+    static bool prismLoop;
+
     public static void CheckCircuit(Element element) {
+        prismLoop = false;
         List<Element> path = new List<Element>();
-        CheckStar(element, path);
+        CheckElement(element, path);
     }
-    
-    static void CheckStar(Element element, List<Element> currentPath) {
+
+    #region Recursive Methods
+
+    static void CheckElement(Element element, List<Element> currentPath) {
+        
         currentPath.Add(element);
 
         if (element.links.Count > 0) {
-            foreach (Link link in element.links)
+            foreach (Link link in element.links) {
                 CheckIfPathContains(currentPath, link.target);
+                if (prismLoop) return;
+            }
         }
         if (element.targeted.Count > 0) {
-            foreach (Link link in element.targeted)
+            foreach (Link link in element.targeted) {
                 CheckIfPathContains(currentPath, link.parent);
+                if (prismLoop) return;
+            }
         }
     }
 
     static void CheckIfPathContains(List<Element> path, Element element) {
-
+        
         if (path.Contains(element)) {
             if (path.IndexOf(element) == path.Count - 2)
                 return; //this is the star we come from, abort
@@ -30,9 +40,11 @@ public static class CircuitManager {
                 GenerateLoop(path, element);
         } else if (element.links.Count + element.targeted.Count > 1) {
             List<Element> newPath = new List<Element>(path);
-            CheckStar(element, newPath);
+            CheckElement(element, newPath);
         }
     }
+
+    #endregion
 
     /// <summary>
     /// Generates a loop on the specified path starting and finishing from the specified loop
@@ -42,33 +54,50 @@ public static class CircuitManager {
     static void GenerateLoop(List<Element> path, Element element) {
         int loopStart = path.IndexOf(element);
 
-        if (path[0].GetType() == System.Type.GetType("Prism")) {
-            Debug.Log("Prism Loop");
-            return;
+        if (path[0].GetComponent<Prism>()) { // Prism Loop
+
+            prismLoop = true;
+
+            Chroma newChroma = Chroma.zero;
+
+            foreach (Element prism in path)
+                newChroma += prism.chroma;
+
+            newChroma = Chroma.ReBalanced(newChroma);
+
+            WorldWrapper.singleton.currentInstance.CreateStar(AveragePoint(path), newChroma);
+
+            while(path.Count > 0) {
+                path[0].DestroyAllLinks();
+                MonoBehaviour.Destroy(path[0].gameObject);
+                path.Remove(path[0]);
+            }
+
+        } else if (path[0].GetComponent<Star>()) { // Star Loop
+            List<Star> loop = new List<Star>();
+            for (int i = loopStart; i < path.Count; i++)
+                loop.Add((Star)path[i]);
+
+            loop.Sort(CompareStars);
+            // We should avoid generating a loop containing only stars that are already in a loop?
+            Loop newLoop = new Loop(loop.ToArray());
+            if (newLoop.AlreadyExists()) return;
+            else LoopManager.Add(newLoop);
         }
+    }
 
-        List<Star> loop = new List<Star>();
+    /// <summary>
+    /// Returns the point in the middle of all defined points using their average coordinates.
+    /// </summary>
+    /// <param name="points"> All the points to average. </param>
+    /// <returns></returns>
+    static Vector3 AveragePoint(List<Element> points) {
+        Vector3 sum = points[0].transform.position;
 
-        for (int i = loopStart; i < path.Count; i++)
-            loop.Add((Star)path[i]);
+        for (int i = 1; i < points.Count; i++)
+            sum += points[i].transform.position;
 
-        loop.Sort(CompareStars);
-        
-        Loop newLoop = new Loop(loop.ToArray());
-
-        // We should avoid generating a loop containing only stars that are already in a loop
-
-        if (newLoop.AlreadyExists())
-            return; //don't generate a loop if it already exists;
-        else
-            LoopManager.Add(newLoop);
-
-        string loopString = "New Loop: ";
-
-        for (int i = 0; i < loop.Count; i++)
-            loopString += loop[i].name + ", ";
-
-        Debug.Log(loopString);
+        return sum / points.Count;
     }
 
     static int CompareStars(Star a, Star b) {

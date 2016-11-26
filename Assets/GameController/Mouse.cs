@@ -5,7 +5,7 @@ public static class Mouse {
     /// <summary>
     /// The element that the player is currently hovering, if any.
     /// </summary>
-    public static Element hover;
+    public static MonoBehaviour hover;
 
     /// <summary>
     /// The element that the player is currently holding, if any.

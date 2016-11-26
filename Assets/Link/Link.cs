@@ -66,6 +66,8 @@ public class Link : MonoBehaviour {
 
     #endregion
 
+    #region MonoBehaviour Functions
+
     void Start() {
         line = GetComponent<LineRenderer>();
         parent = transform.parent.GetComponent<Element>();
@@ -76,7 +78,7 @@ public class Link : MonoBehaviour {
 
     void LateUpdate() { // We should change it so that links only update when necessary
         line.SetPosition(0, originPosition);
-        transform.position = originPosition;
+        //transform.position = originPosition;
         if (connected) {
             line.SetPosition(1, targetPosition);
 
@@ -94,6 +96,15 @@ public class Link : MonoBehaviour {
     }
 
     void OnMouseEnter() {
+        if (Mouse.holding && Mouse.holding != target && Mouse.holding != parent &&
+            Mouse.holding.GetComponent<Prism>()) {
+            print("hover link with prism");
+
+            line.SetColors(Color.cyan, Color.cyan);
+
+            Mouse.hover = this;
+        }
+
         if (Mouse.breakLinkMode && !destroyed) {
             destroyed = true;
             ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
@@ -112,7 +123,16 @@ public class Link : MonoBehaviour {
         }
     }
 
-    void DestroyLink() {
+    void OnMouseExit() {
+        if (Mouse.hover == this) {
+            Mouse.hover = null;
+            line.SetColors(Color.white, Color.white);
+        }
+    }
+
+    #endregion
+
+    public void DestroyLink() {
         parent.links.Remove(this);
         target.targeted.Remove(this);
         // We should also remove the loops containing this link

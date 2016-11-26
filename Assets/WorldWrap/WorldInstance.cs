@@ -4,14 +4,10 @@ public class WorldInstance : MonoBehaviour {
 
     public int numberOfStars;
     public float radius = 10;
-    [SerializeField]
-    Star starPrefab;
+    public Star starPrefab;
     public Star[] stars;
     public int loop = 0;
-
-    [SerializeField]
-    Material[] starMaterials;
-
+    
     public int id {
         get { return WorldWrapper.singleton.worldInstanceID(this); }
     }
@@ -29,6 +25,20 @@ public class WorldInstance : MonoBehaviour {
             stars[i] = newStar;
         }
         WorldWrapper.singleton.Generate();
+    }
+
+    /// <summary>
+    /// Creates a Star at the defined position with the defined Chromatic property.
+    /// </summary>
+    /// <param name="pos"> The position of the new Star. </param>
+    /// <param name="chroma"> The Chromatic property of the new Star. </param>
+    public void CreateStar(Vector3 pos, Chroma chroma) {
+        Star newStar = (Star)Instantiate(starPrefab, pos, Quaternion.identity);
+        newStar.transform.parent = transform;
+        newStar.name = "New Star";
+        newStar.existence = Existence.unique;
+        newStar.chroma = chroma;
+        newStar.id = -1;
     }
 
 }

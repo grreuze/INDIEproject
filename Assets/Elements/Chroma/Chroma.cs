@@ -4,13 +4,13 @@
 public struct Chroma {
 
     const int MAX = 3;
-    const int HDREmission = 2;
+    const int HDREmission = 1;
     public int r, g, b;
 
     public Color color {
         get {
             int maxValue = Mathf.Max(r, g, b);
-            return new Color(r / maxValue, g / maxValue, b / maxValue) * HDREmission;
+            return new Color((float)r / maxValue, (float)g / maxValue, (float)b / maxValue) * HDREmission;
         }
     }
 
@@ -20,7 +20,7 @@ public struct Chroma {
         this.b = b;
     }
 
-    public static void ReBalance(Chroma c) {
+    public static Chroma ReBalanced(Chroma c) {
 
         while (c.r > MAX || c.g > MAX || c.b > MAX) {
             c.r--;
@@ -37,10 +37,15 @@ public struct Chroma {
         if (c.r == c.r + c.g + c.b) c.r = 1;
         if (c.g == c.r + c.g + c.b) c.g = 1;
         if (c.b == c.r + c.g + c.b) c.b = 1;
+
+        return c;
     }
 
     #region Static Colors
-
+    
+    public static Chroma zero {
+        get { return new Chroma(0, 0, 0); }
+    }
     public static Chroma red {
         get { return new Chroma(1, 0, 0); }
     }
@@ -62,7 +67,6 @@ public struct Chroma {
         a.r += b.r;
         a.g += b.g;
         a.b += b.b;
-        ReBalance(a);
         return a;
     }
 
@@ -70,7 +74,6 @@ public struct Chroma {
         a.r -= b.r;
         a.g -= b.g;
         a.b -= b.b;
-        ReBalance(a);
         return a;
     }
 
@@ -78,7 +81,6 @@ public struct Chroma {
         a.r += b;
         a.g += b;
         a.b += b;
-        ReBalance(a);
         return a;
     }
 
@@ -86,7 +88,6 @@ public struct Chroma {
         a.r -= b;
         a.g -= b;
         a.b -= b;
-        ReBalance(a);
         return a;
     }
 
@@ -94,7 +95,6 @@ public struct Chroma {
         a.r *= b;
         a.g *= b;
         a.b *= b;
-        ReBalance(a);
         return a;
     }
 

@@ -3,43 +3,133 @@ using System.Collections.Generic;
 
 public abstract class Element : MonoBehaviour {
 
-    #region Properties
+    #region Public Properties
 
     [Header("Element Properties")]
 
     public WorldInstance worldInstance;
+    public Existence existence;
     public Chroma chroma;
-    [HideInInspector]
-    public Transform worldTransform;
 
     public List<Link> links = new List<Link>();
     public List<Link> targeted = new List<Link>();
 
-    public bool hovered;
+    public int id;
 
+    public Material mat, hoverMat;
+
+    [SerializeField]
+    Link linkPrefab;
+
+    #endregion
+
+    #region Private Properties
+
+    bool hovered;
     /// <summary>
     /// Returns whether or not the player is holding this element.
     /// </summary>
-    public bool isHeld {
+    bool isHeld {
         get { return hovered && Input.GetMouseButton(0); }
     }
 
-    public static WorldWrapper wrapper;
-
-    [SerializeField]
-    Link link;
+    static WorldWrapper wrapper;
+    Transform worldTransform;
 
     float scaleFactor = 0.2f;
     MinMax scale = new MinMax(0, 0.8f);
 
+    int loop;
+
+    Collider col;
+    Renderer rend;
+
+    Star[] clones;
+
     #endregion
 
-    public void Init() {
+    #region MonoBehaviours Methods
+
+    void Start() {
+        col = GetComponent<Collider>();
+        rend = GetComponent<Renderer>();
+        rend.sharedMaterial = mat;
+
+        rend.material.SetColor("_EmissionColor", chroma.color);
+
         if (!wrapper) wrapper = WorldWrapper.singleton;
         GetWorldInstance();
+        if (existence == Existence.cloned)
+            GetAllClones();
+        if (existence == Existence.unique)
+            loop = worldInstance.loop;
     }
 
-    #region Instance Methods
+    void Update() {
+        Rescale(); // We should only rescale if zooming / dezooming / anchored
+        CheckHeld();
+        CheckLink();
+
+        if (existence == Existence.unique)
+            SetActive(loop == worldInstance.loop);
+    }
+
+    void OnMouseEnter() {
+        if (!isHeld && !Input.GetMouseButton(0) && Mouse.holding == null) {
+            hovered = true;
+            Mouse.hover = this;
+            rend.sharedMaterial = hoverMat;
+        }
+    }
+
+    void OnMouseExit() {
+        if (!isHeld) StopHold();
+    }
+
+    #endregion
+    
+    void SetActive(bool value) {
+        col.enabled = value;
+        rend.enabled = value;
+    }
+
+    #region Holding Methods
+
+    void CheckHeld() {
+        if (isHeld) {
+            if (Mouse.holding != this) {
+                Mouse.holding = this;
+                transform.parent = null;
+                gameObject.layer = 2;
+                if (existence == Existence.cloned) AnchorClones();
+            }
+            if (existence == Existence.cloned) MoveClones();
+            float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
+            transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
+            UpdateLinks();
+        } else if (Mouse.holding == this) StopHold();
+    }
+
+    void StopHold() {
+        hovered = false;
+        if (GetComponent<Prism>() && Mouse.hover && Mouse.hover.GetComponent<Link>()) {
+            Debug.Log("Put Prism on Link");
+        }
+
+        Mouse.hover = null;
+        rend.sharedMaterial = mat;
+        rend.material.SetColor("_EmissionColor", chroma.color);
+        gameObject.layer = 0;
+        if (Mouse.holding == this) {
+            Mouse.holding = null;
+            ChangeInstance();
+            if (existence == Existence.cloned) ReleaseClones();
+        }
+    }
+
+    #endregion
+
+    #region WorldInstance Methods
 
     /// <summary>
     /// Gets the parent World Instance
@@ -53,13 +143,28 @@ public abstract class Element : MonoBehaviour {
     /// Sets the element's instance to the one at the specified relative distance.
     /// </summary>
     /// <param name="diff"> The difference between the current instance and the desired one. </param>
-    public virtual void SetNewInstance(int diff) {
+    void SetNewInstance(int diff) {
         if (worldInstance.id == wrapper.numberOfInstances - 1) {
             transform.localScale = Vector3.one * 100;
         }
         int newid = InverseInstanceID(diff);
         transform.parent = wrapper.worldInstances[newid].transform;
         GetWorldInstance();
+    }
+    
+    void ChangeInstance() {
+        if (existence == Existence.unique)
+            loop = worldInstance.loop;
+
+        int diff = wrapper.currentInstance.id - worldInstance.id;
+        if (diff == 0)
+            transform.parent = worldTransform;
+        else {
+            SetNewInstance(diff);
+            if (existence == Existence.cloned)
+                SetNewCloneInstance(diff);
+            UpdateLinks();
+        }
     }
 
     /// <summary>
@@ -80,7 +185,7 @@ public abstract class Element : MonoBehaviour {
 
     #region Link Methods
     
-    public void CheckLink() {
+    void CheckLink() {
         if (hovered) {
             if (Input.GetMouseButtonDown(1)) {
                 CreateLink(this);
@@ -106,7 +211,7 @@ public abstract class Element : MonoBehaviour {
 
     void CreateLink(Element origin) {
         Mouse.linking = origin;
-        Mouse.link = Instantiate(link);
+        Mouse.link = Instantiate(linkPrefab);
         Mouse.link.transform.parent = transform;
         Mouse.link.transform.position = transform.position;
         Mouse.link.originLoop = worldInstance.loop;
@@ -124,7 +229,7 @@ public abstract class Element : MonoBehaviour {
         CircuitManager.CheckCircuit(target);
     }
 
-    public void UpdateLinks() {
+    void UpdateLinks() {
         if (links.Count > 0) UpdateOriginPoints();
         if (targeted.Count > 0) UpdateTargetPoints();
     }
@@ -139,6 +244,13 @@ public abstract class Element : MonoBehaviour {
             link.targetLoop = link.isVisible ? wrapper.currentInstance.loop : link.targetLoop;
     }
 
+    public void DestroyAllLinks() {
+        while (links.Count > 0)
+            links[0].DestroyLink();
+        while (targeted.Count > 0)
+            targeted[0].DestroyLink();
+    }
+
     #endregion
 
     #region Scale Methods
@@ -146,7 +258,7 @@ public abstract class Element : MonoBehaviour {
     /// <summary>
     /// Rescales an element depending on its parent's scale.
     /// </summary>
-    public void Rescale() {
+    void Rescale() {
         Vector3 parentScale = GetParentScale();
         Vector3 localScale = Vector3.one * Vector3.Distance(Vector3.zero, transform.position) * scaleFactor;
         localScale.x *= parentScale.x;
@@ -158,6 +270,14 @@ public abstract class Element : MonoBehaviour {
         localScale.z = Mathf.Clamp(localScale.z, scale.min * parentScale.z, scale.max * parentScale.z);
 
         transform.localScale = localScale;
+        FixPosition();
+    }
+
+    void FixPosition() { //Not sure if necessary anymore
+        if (Mathf.Abs(transform.localPosition.x) > 1000)
+            transform.localPosition /= 10000;
+        if (Mathf.Abs(transform.localPosition.x) < 0.001)
+            transform.localPosition *= 10000;
     }
 
     Vector3 GetParentScale() {
@@ -176,4 +296,49 @@ public abstract class Element : MonoBehaviour {
 
     #endregion
 
+    #region CloneMethods
+
+    void GetAllClones() {
+        clones = new Star[wrapper.worldInstances.Count - 1];
+
+        for (int i = 0, j = 0; i < clones.Length + 1; i++, j++) {
+            if (i == worldInstance.id) {
+                j--;
+                continue;
+            }
+            Star clone = wrapper.worldInstances[i].stars[id];
+            clones[j] = clone;
+        }
+    }
+
+    void AnchorClones() {
+        foreach (Star clone in clones) {
+            clone.anchored = true;
+        }
+    }
+
+    void MoveClones() {
+        foreach (Star clone in clones) {
+            clone.transform.localPosition = worldTransform.InverseTransformPoint(transform.position);
+        }
+    }
+
+    void ReleaseClones() {
+        foreach (Star clone in clones) {
+            clone.anchored = false;
+        }
+    }
+
+    void SetNewCloneInstance(int diff) {
+        foreach (Star clone in clones) {
+            clone.SetNewInstance(diff);
+        }
+    }
+
+    #endregion
+
+}
+
+public enum Existence {
+    cloned, unique, substracted
 }

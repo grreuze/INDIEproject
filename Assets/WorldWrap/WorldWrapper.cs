@@ -69,8 +69,8 @@ public class WorldWrapper : MonoBehaviour {
             if (worldInstances[i].transform.localScale.x > maxScale) {
                 worldInstances[i].transform.localScale = Vector3.one * minScale;
                 worldInstances[i].loop++;
-                worldInstances.Insert(0, worldInstances[i]); //Adds the reference to the instance at the beginning of the list
-                worldInstances.RemoveAt(i + 1); //Removes the reference to the instance from the end of the list
+                worldInstances.Insert(0, worldInstances[i]);
+                worldInstances.RemoveAt(i + 1);
 
             } else if (worldInstances[i].transform.localScale.x < minScale) {
                 worldInstances[i].transform.localScale = Vector3.one * maxScale;
