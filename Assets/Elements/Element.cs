@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
 public abstract class Element : MonoBehaviour {
@@ -177,6 +178,7 @@ public abstract class Element : MonoBehaviour {
         transform.parent = null;
         gameObject.layer = 2;
         if (existence == Existence.cloned) AnchorClones();
+        if (GetComponent<Star>()) StartCoroutine("CheckShake");
     }
 
     public virtual void MoveToMousePosition() {
@@ -192,6 +194,7 @@ public abstract class Element : MonoBehaviour {
         ChangeInstance();
         gameObject.layer = 0;
         if (existence == Existence.cloned) ReleaseClones();
+        if (GetComponent<Star>()) StopCoroutine("CheckShake");
     }
 
     #endregion
@@ -403,6 +406,44 @@ public abstract class Element : MonoBehaviour {
     void SetNewCloneInstance(int diff) {
         foreach (Star clone in clones)
             clone.SetNewInstance(diff);
+    }
+
+    #endregion
+
+    #region ShakeMethods
+
+    IEnumerator CheckShake()
+    {
+        bool isShaking = false; 
+        int shakeRequired = 6; // Number of mouse x direction change required
+        int delay = 5; // Delay allowed to shake
+        float shakeTime = Time.time + delay;
+        bool previousMove = false;
+        bool currentMove = false;
+
+        Debug.Log("Start shake");
+
+        while(isShaking == false && Time.time < shakeTime)
+        {
+            if (Mathf.Sign(Input.GetAxis("Mouse X")) > 0) currentMove = true;
+            else currentMove = false;
+            if(previousMove != currentMove)
+            {
+                previousMove = currentMove;
+                shakeRequired--;
+            }
+            if (shakeRequired == 0) isShaking = true;
+            yield return new WaitForSeconds(Time.deltaTime);
+        }
+        if (isShaking) Debug.Log("Shaaaake"); //Where you destroy the star
+        else StopStarCheckShake();
+        yield return null;
+    }
+
+    void StopStarCheckShake()
+    {
+        StopCoroutine("CheckShake");
+        StartCoroutine("CheckShake");
     }
 
     #endregion
