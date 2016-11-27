@@ -11,6 +11,9 @@ public class Link : MonoBehaviour {
         get { return _width / transform.lossyScale.x; }
     }
 
+    [SerializeField]
+    Material mat, hoverMat;
+
     public Element parent;
     public Element target;
     public int targetLoop;
@@ -27,18 +30,19 @@ public class Link : MonoBehaviour {
         get { return (parentMetaPos != targetMetaPos) || (parentMetaPos == targetMetaPos && targetMetaPos == MetaPosition.InRange); }
     }
 
+    /// <summary>
+    /// The length of the link. Distance between originPosition and targetPosition.
+    /// </summary>
+    public float length {
+        get { return Vector3.Distance(originPosition, targetPosition); }
+    }
+
     enum MetaPosition { InRange, External, Internal }
     MetaPosition parentMetaPos, targetMetaPos;
     LineRenderer line;
     BoxCollider col;
     bool destroyed;
 
-    /// <summary>
-    /// The length of the link. Distance between originPosition and targetPosition.
-    /// </summary>
-    float length {
-        get { return Vector3.Distance(originPosition, targetPosition); }
-    }
 
     float startWidth {
         get {
@@ -70,6 +74,7 @@ public class Link : MonoBehaviour {
 
     void Start() {
         line = GetComponent<LineRenderer>();
+        line.sharedMaterial = mat;
         parent = transform.parent.GetComponent<Element>();
         col = GetComponent<BoxCollider>();
         line.SetWidth(width, width);
@@ -98,10 +103,8 @@ public class Link : MonoBehaviour {
     void OnMouseEnter() {
         if (Mouse.holding && Mouse.holding != target && Mouse.holding != parent &&
             Mouse.holding.GetComponent<Prism>()) {
-            print("hover link with prism");
 
-            line.SetColors(Color.cyan, Color.cyan);
-
+            line.sharedMaterial = hoverMat;
             Mouse.hover = this;
         }
 
@@ -124,10 +127,9 @@ public class Link : MonoBehaviour {
     }
 
     void OnMouseExit() {
-        if (Mouse.hover == this) {
+        line.sharedMaterial = mat;
+        if (Mouse.hover == this)
             Mouse.hover = null;
-            line.SetColors(Color.white, Color.white);
-        }
     }
 
     #endregion

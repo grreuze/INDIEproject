@@ -9,6 +9,7 @@ public abstract class Element : MonoBehaviour {
 
     public WorldInstance worldInstance;
     public Existence existence;
+
     public Chroma chroma;
 
     public List<Link> links = new List<Link>();
@@ -18,8 +19,9 @@ public abstract class Element : MonoBehaviour {
 
     public Material mat, hoverMat;
 
-    [SerializeField]
-    Link linkPrefab;
+    public bool isActive {
+        get { return rend.enabled; }
+    }
 
     #endregion
 
@@ -36,10 +38,15 @@ public abstract class Element : MonoBehaviour {
     static WorldWrapper wrapper;
     Transform worldTransform;
 
+    [Header("Scale"), SerializeField]
+    Vector3 defaultScale = Vector3.one;
+    [SerializeField]
     float scaleFactor = 0.2f;
+    [SerializeField]
     MinMax scale = new MinMax(0, 0.8f);
 
     int loop;
+    List<int> substractedFrom = new List<int>();
 
     Collider col;
     Renderer rend;
@@ -70,8 +77,50 @@ public abstract class Element : MonoBehaviour {
         CheckHeld();
         CheckLink();
 
+        //Temporary breaking method
+        if (hovered && GetComponent<Star>() && Input.GetMouseButtonDown(2)) {
+            DestroyAllLinks();
+
+            if (existence == Existence.cloned)
+                existence = Existence.substracted;
+            else Destroy(gameObject);
+
+            substractedFrom.Add(worldInstance.loop);
+
+            if (chroma.isPure) chroma *= Chroma.MAX; //If only one color, give 3 prisms instead of one
+
+            for (int i = 0; i < chroma.r; i++) {
+                Prism redPrism = (Prism)Instantiate(PrefabManager.prism, 
+                    transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1)), 
+                    Quaternion.identity);
+                redPrism.transform.parent = wrapper.currentInstance.transform;
+                redPrism.chroma = Chroma.red;
+                redPrism.transform.LookAt(transform);
+            }
+            for (int i = 0; i < chroma.g; i++) {
+                Prism greenPrism = (Prism)Instantiate(PrefabManager.prism,
+                    transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1)),
+                    Quaternion.identity);
+                greenPrism.transform.parent = wrapper.currentInstance.transform;
+                greenPrism.chroma = Chroma.green;
+                greenPrism.transform.LookAt(transform);
+            }
+            for (int i = 0; i < chroma.b; i++) {
+                Prism bluePrism = (Prism)Instantiate(PrefabManager.prism,
+                    transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1)),
+                    Quaternion.identity);
+                bluePrism.transform.parent = wrapper.currentInstance.transform;
+                bluePrism.chroma = Chroma.blue;
+                bluePrism.transform.LookAt(transform);
+            }
+        }
+
+
         if (existence == Existence.unique)
             SetActive(loop == worldInstance.loop);
+        else
+        if (existence == Existence.substracted)
+            SetActive(!substractedFrom.Contains(worldInstance.loop));
     }
 
     void OnMouseEnter() {
@@ -83,48 +132,66 @@ public abstract class Element : MonoBehaviour {
     }
 
     void OnMouseExit() {
-        if (!isHeld) StopHold();
+        if (!isHeld) StopHover();
     }
 
     #endregion
-    
+
+    #region Render Methods
+
     void SetActive(bool value) {
         col.enabled = value;
         rend.enabled = value;
     }
 
+    public void ApplyChroma() {
+        Recolor();
+        if (existence == Existence.cloned) RecolorClones();
+    }
+
+    void Recolor() {
+        chroma.ReBalance();
+        rend.sharedMaterial = mat;
+        rend.material.SetColor("_EmissionColor", chroma.color);
+    }
+
+    #endregion
+
     #region Holding Methods
 
     void CheckHeld() {
         if (isHeld) {
-            if (Mouse.holding != this) {
-                Mouse.holding = this;
-                transform.parent = null;
-                gameObject.layer = 2;
-                if (existence == Existence.cloned) AnchorClones();
-            }
-            if (existence == Existence.cloned) MoveClones();
-            float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
-            transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
-            UpdateLinks();
+            if (Mouse.holding != this) StartHold();
+            MoveToMousePosition();
         } else if (Mouse.holding == this) StopHold();
     }
 
-    void StopHold() {
+    void StopHover() {
         hovered = false;
-        if (GetComponent<Prism>() && Mouse.hover && Mouse.hover.GetComponent<Link>()) {
-            Debug.Log("Put Prism on Link");
-        }
-
         Mouse.hover = null;
-        rend.sharedMaterial = mat;
-        rend.material.SetColor("_EmissionColor", chroma.color);
+        Recolor();
+    }
+
+    public virtual void StartHold() {
+        Mouse.holding = this;
+        transform.parent = null;
+        gameObject.layer = 2;
+        if (existence == Existence.cloned) AnchorClones();
+    }
+
+    public virtual void MoveToMousePosition() {
+        if (existence == Existence.cloned) MoveClones();
+        float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
+        transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
+        UpdateLinks();
+    }
+
+    public virtual void StopHold() {
+        StopHover();
+        Mouse.holding = null;
+        ChangeInstance();
         gameObject.layer = 0;
-        if (Mouse.holding == this) {
-            Mouse.holding = null;
-            ChangeInstance();
-            if (existence == Existence.cloned) ReleaseClones();
-        }
+        if (existence == Existence.cloned) ReleaseClones();
     }
 
     #endregion
@@ -211,7 +278,7 @@ public abstract class Element : MonoBehaviour {
 
     void CreateLink(Element origin) {
         Mouse.linking = origin;
-        Mouse.link = Instantiate(linkPrefab);
+        Mouse.link = Instantiate(PrefabManager.link);
         Mouse.link.transform.parent = transform;
         Mouse.link.transform.position = transform.position;
         Mouse.link.originLoop = worldInstance.loop;
@@ -260,7 +327,7 @@ public abstract class Element : MonoBehaviour {
     /// </summary>
     void Rescale() {
         Vector3 parentScale = GetParentScale();
-        Vector3 localScale = Vector3.one * Vector3.Distance(Vector3.zero, transform.position) * scaleFactor;
+        Vector3 localScale = defaultScale * Vector3.Distance(Vector3.zero, transform.position) * scaleFactor;
         localScale.x *= parentScale.x;
         localScale.y *= parentScale.y;
         localScale.z *= parentScale.z;
@@ -312,27 +379,30 @@ public abstract class Element : MonoBehaviour {
     }
 
     void AnchorClones() {
-        foreach (Star clone in clones) {
+        foreach (Star clone in clones)
             clone.anchored = true;
-        }
     }
 
     void MoveClones() {
-        foreach (Star clone in clones) {
+        foreach (Star clone in clones)
             clone.transform.localPosition = worldTransform.InverseTransformPoint(transform.position);
-        }
     }
 
     void ReleaseClones() {
-        foreach (Star clone in clones) {
+        foreach (Star clone in clones)
             clone.anchored = false;
+    }
+
+    void RecolorClones() {
+        foreach (Star clone in clones) {
+            clone.chroma = chroma;
+            clone.Recolor();
         }
     }
 
     void SetNewCloneInstance(int diff) {
-        foreach (Star clone in clones) {
+        foreach (Star clone in clones)
             clone.SetNewInstance(diff);
-        }
     }
 
     #endregion

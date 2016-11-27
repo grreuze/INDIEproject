@@ -15,9 +15,7 @@ public class GameController : MonoBehaviour {
     public float screenCenterMargin = 20;
     public float screenBorderMargin = 10;
     public float zoomSpeed, zoomStopSpeed;
-
-    public Prism tempPrefabPrism;
-
+    
     WorldWrapper wrapper;
 
     float pitch = 0.0f;
@@ -61,19 +59,6 @@ public class GameController : MonoBehaviour {
 
     void MouseControls() {
         LeftClickControls();
-
-        //Creates a Prism with middle click, TO DELETE
-        if (Input.GetMouseButtonUp(2)) {
-            Prism newPrism = (Prism)Instantiate(tempPrefabPrism, 
-                Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10)), Quaternion.identity);
-            newPrism.transform.parent = wrapper.currentInstance.transform;
-
-            float val = Random.value;
-            if (val < 0.333f) newPrism.chroma = Chroma.red;
-            else if (val < 0.666f) newPrism.chroma = Chroma.green;
-            else newPrism.chroma = Chroma.blue;
-        }
-
         ScrollWheelControls();
         RightClickControls();
     }

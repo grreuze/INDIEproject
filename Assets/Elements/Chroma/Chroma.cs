@@ -3,7 +3,7 @@
 [System.Serializable]
 public struct Chroma {
 
-    const int MAX = 3;
+    public const int MAX = 3;
     const int HDREmission = 1;
     public int r, g, b;
 
@@ -20,25 +20,26 @@ public struct Chroma {
         this.b = b;
     }
 
-    public static Chroma ReBalanced(Chroma c) {
+    public bool isPure {
+        get { return r + g + b == 1; }
+    }
 
-        while (c.r > MAX || c.g > MAX || c.b > MAX) {
-            c.r--;
-            c.g--;
-            c.b--;
+    public void ReBalance() {
+        while (r > MAX || g > MAX || b > MAX) {
+             r--;
+             g--;
+             b--;
         }
-        if (c.r < 0) c.r = 0;
-        if (c.g < 0) c.g = 0;
-        if (c.b < 0) c.b = 0;
+        if (r < 0) r = 0;
+        if (g < 0) g = 0;
+        if (b < 0) b = 0;
 
-        if (c.r == c.g && c.g == c.b)
-            c.r = c.g = c.b = 1;
+        if (r == g && g == b)
+            r = g = b = 1;
 
-        if (c.r == c.r + c.g + c.b) c.r = 1;
-        if (c.g == c.r + c.g + c.b) c.g = 1;
-        if (c.b == c.r + c.g + c.b) c.b = 1;
-
-        return c;
+        if (r == r + g + b) r = 1;
+        if (g == r + g + b) g = 1;
+        if (b == r + g + b) b = 1;
     }
 
     #region Static Colors
@@ -74,6 +75,13 @@ public struct Chroma {
         a.r -= b.r;
         a.g -= b.g;
         a.b -= b.b;
+        return a;
+    }
+
+    public static Chroma operator * (Chroma a, Chroma b) {
+        a.r *= b.r;
+        a.g *= b.g;
+        a.b *= b.b;
         return a;
     }
 

@@ -63,7 +63,7 @@ public static class CircuitManager {
             foreach (Element prism in path)
                 newChroma += prism.chroma;
 
-            newChroma = Chroma.ReBalanced(newChroma);
+            newChroma.ReBalance();
 
             WorldWrapper.singleton.currentInstance.CreateStar(AveragePoint(path), newChroma);
 
