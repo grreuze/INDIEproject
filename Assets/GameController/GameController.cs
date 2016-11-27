@@ -23,6 +23,8 @@ public class GameController : MonoBehaviour {
     float zoomValue;
     Vector2 momentum;
 
+    bool isDragging;
+
     #endregion
 
     #region MonoBehaviour Methods
@@ -64,10 +66,16 @@ public class GameController : MonoBehaviour {
     }
 
     void LeftClickControls() {
-        if (Input.GetMouseButtonUp(0) && !Cursor.visible)
+        if (Input.GetMouseButtonUp(0) && !Cursor.visible) {
             StartCoroutine(Momentum());
+            isDragging = false;
+        }
 
-        if (Input.GetMouseButton(0) && Mouse.hover == null && Mouse.holding == null) {
+        if (Input.GetMouseButtonDown(0) && Mouse.hover == null && Mouse.holding == null) {
+            isDragging = true;
+        }
+
+        if (Input.GetMouseButton(0) && isDragging && Mouse.hover == null && Mouse.holding == null) {
             StopAllCoroutines();
 
             pitch = Input.GetAxis("Mouse X") * xSpeed * 0.02f * -1;

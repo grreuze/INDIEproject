@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 
 public abstract class Element : MonoBehaviour {
@@ -23,6 +22,8 @@ public abstract class Element : MonoBehaviour {
     public bool isActive {
         get { return rend.enabled; }
     }
+    
+    public List<int> substractedFrom = new List<int>();
 
     #endregion
 
@@ -47,7 +48,6 @@ public abstract class Element : MonoBehaviour {
     MinMax scale = new MinMax(0, 0.8f);
 
     int loop;
-    List<int> substractedFrom = new List<int>();
 
     Collider col;
     Renderer rend;
@@ -77,45 +77,6 @@ public abstract class Element : MonoBehaviour {
         Rescale(); // We should only rescale if zooming / dezooming / anchored
         CheckHeld();
         CheckLink();
-
-        //Temporary breaking method
-        if (hovered && GetComponent<Star>() && Input.GetMouseButtonDown(2)) {
-            DestroyAllLinks();
-
-            if (existence == Existence.cloned)
-                existence = Existence.substracted;
-            else Destroy(gameObject);
-
-            substractedFrom.Add(worldInstance.loop);
-
-            if (chroma.isPure) chroma *= Chroma.MAX; //If only one color, give 3 prisms instead of one
-
-            for (int i = 0; i < chroma.r; i++) {
-                Prism redPrism = (Prism)Instantiate(PrefabManager.prism, 
-                    transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1)), 
-                    Quaternion.identity);
-                redPrism.transform.parent = wrapper.currentInstance.transform;
-                redPrism.chroma = Chroma.red;
-                redPrism.transform.LookAt(transform);
-            }
-            for (int i = 0; i < chroma.g; i++) {
-                Prism greenPrism = (Prism)Instantiate(PrefabManager.prism,
-                    transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1)),
-                    Quaternion.identity);
-                greenPrism.transform.parent = wrapper.currentInstance.transform;
-                greenPrism.chroma = Chroma.green;
-                greenPrism.transform.LookAt(transform);
-            }
-            for (int i = 0; i < chroma.b; i++) {
-                Prism bluePrism = (Prism)Instantiate(PrefabManager.prism,
-                    transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1)),
-                    Quaternion.identity);
-                bluePrism.transform.parent = wrapper.currentInstance.transform;
-                bluePrism.chroma = Chroma.blue;
-                bluePrism.transform.LookAt(transform);
-            }
-        }
-
 
         if (existence == Existence.unique)
             SetActive(loop == worldInstance.loop);
@@ -178,7 +139,6 @@ public abstract class Element : MonoBehaviour {
         transform.parent = null;
         gameObject.layer = 2;
         if (existence == Existence.cloned) AnchorClones();
-        if (GetComponent<Star>()) StartCoroutine("CheckShake");
     }
 
     public virtual void MoveToMousePosition() {
@@ -194,7 +154,6 @@ public abstract class Element : MonoBehaviour {
         ChangeInstance();
         gameObject.layer = 0;
         if (existence == Existence.cloned) ReleaseClones();
-        if (GetComponent<Star>()) StopCoroutine("CheckShake");
     }
 
     #endregion
@@ -256,7 +215,7 @@ public abstract class Element : MonoBehaviour {
     #region Link Methods
     
     void CheckLink() {
-        if (hovered) {
+        if (hovered && !isHeld) {
             if (Input.GetMouseButtonDown(1)) {
                 CreateLink(this);
             }
@@ -409,45 +368,7 @@ public abstract class Element : MonoBehaviour {
     }
 
     #endregion
-
-    #region ShakeMethods
-
-    IEnumerator CheckShake()
-    {
-        bool isShaking = false; 
-        int shakeRequired = 6; // Number of mouse x direction change required
-        int delay = 5; // Delay allowed to shake
-        float shakeTime = Time.time + delay;
-        bool previousMove = false;
-        bool currentMove = false;
-
-        Debug.Log("Start shake");
-
-        while(isShaking == false && Time.time < shakeTime)
-        {
-            if (Mathf.Sign(Input.GetAxis("Mouse X")) > 0) currentMove = true;
-            else currentMove = false;
-            if(previousMove != currentMove)
-            {
-                previousMove = currentMove;
-                shakeRequired--;
-            }
-            if (shakeRequired == 0) isShaking = true;
-            yield return new WaitForSeconds(Time.deltaTime);
-        }
-        if (isShaking) Debug.Log("Shaaaake"); //Where you destroy the star
-        else StopStarCheckShake();
-        yield return null;
-    }
-
-    void StopStarCheckShake()
-    {
-        StopCoroutine("CheckShake");
-        StartCoroutine("CheckShake");
-    }
-
-    #endregion
-
+    
 }
 
 public enum Existence {
