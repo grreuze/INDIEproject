@@ -36,7 +36,10 @@ public class Star : Element {
 
         if (existence == Existence.cloned)
             existence = Existence.substracted;
-        else Destroy(gameObject);
+        else {
+            particles.transform.parent = transform.root;
+            Destroy(gameObject);
+        }
 
         substractedFrom.Add(worldInstance.loop);
 

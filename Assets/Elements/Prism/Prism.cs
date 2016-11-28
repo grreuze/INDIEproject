@@ -53,8 +53,12 @@ public class Prism : Element {
 
         targetedStar = position < 0.5f ? (Star)attachedLink.parent : (Star)attachedLink.target;
         
+        Star oppositeStar = position < 0.5f ? (Star)attachedLink.target : (Star)attachedLink.parent;
+
         transform.LookAt(targetedStar.transform);
+        
         targetedStar.chroma += chroma;
+        targetedStar.chroma += oppositeStar.chroma;
         targetedStar.ApplyChroma();
     }
 
