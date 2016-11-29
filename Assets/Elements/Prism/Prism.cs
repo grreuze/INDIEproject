@@ -11,7 +11,7 @@ public class Prism : Element {
     /// The Link the Prism is currently attached to, if any.
     /// </summary>
     Link attachedLink;
-    Star targetedStar;
+    Star targetedStar, oppositeStar;
 
     #endregion
 
@@ -52,8 +52,7 @@ public class Prism : Element {
         position = Vector3.Distance(transform.position, attachedLink.parent.transform.position) / attachedLink.length;
 
         targetedStar = position < 0.5f ? (Star)attachedLink.parent : (Star)attachedLink.target;
-        
-        Star oppositeStar = position < 0.5f ? (Star)attachedLink.target : (Star)attachedLink.parent;
+        oppositeStar = position < 0.5f ? (Star)attachedLink.target : (Star)attachedLink.parent;
 
         transform.LookAt(targetedStar.transform);
         
@@ -65,6 +64,7 @@ public class Prism : Element {
     void DetachLink() {
         if (targetedStar.isActive && attachedLink) {
             targetedStar.chroma -= chroma;
+            targetedStar.chroma -= oppositeStar.chroma;
             targetedStar.ApplyChroma();
         }
         targetedStar = null;

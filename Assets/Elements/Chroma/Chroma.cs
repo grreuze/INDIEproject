@@ -85,6 +85,14 @@ public struct Chroma {
         return a;
     }
 
+    public static bool operator == (Chroma a, Chroma b) {
+        return a.r == b.r && a.g == b.g && a.b == b.b;
+    }
+
+    public static bool operator != (Chroma a, Chroma b) {
+        return a.r != b.r || a.g != b.g || a.b != b.b;
+    }
+
     public static Chroma operator + (Chroma a, int b) {
         a.r += b;
         a.g += b;
