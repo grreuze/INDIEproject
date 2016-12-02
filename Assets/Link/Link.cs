@@ -4,18 +4,21 @@
 public class Link : MonoBehaviour {
 
     #region Properties
-
-    [SerializeField, Tooltip("The start and end width of the line renderer")]
+    
+    [Header("Line Renderer Properties"), SerializeField, Tooltip("The start and end width of the line renderer")]
     float _width = 0.5f;
     float width {
         get { return _width / transform.lossyScale.x; }
     }
+    [SerializeField]
+    float segmentLength = 0.4f;
 
     [SerializeField]
     Material mat;
     [SerializeField]
     Material hoverMat;
 
+    [Header("Link Properties")]
     public Element parent;
     public Element target;
     public int targetLoop;
@@ -24,6 +27,11 @@ public class Link : MonoBehaviour {
     
     [SerializeField]
     bool adjustWidth;
+
+    [Header("Animation"), SerializeField]
+    float waveHeight = 1.5f;
+    [SerializeField]
+    float waveLength = 0.3f, waveDuration = 0.2f, waveSpeed = 60;
 
     /// <summary>
     /// Returns whether or not the Link is currently visible by the player.
@@ -43,8 +51,7 @@ public class Link : MonoBehaviour {
     MetaPosition parentMetaPos, targetMetaPos;
     LineRenderer line;
     BoxCollider col;
-    bool destroyed;
-
+    bool destroyed, animated;
 
     float startWidth {
         get {
@@ -84,10 +91,28 @@ public class Link : MonoBehaviour {
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
-        line.SetPosition(0, originPosition);
-        //transform.position = originPosition;
+        SetOriginPosition(originPosition);
+
         if (connected) {
-            line.SetPosition(1, targetPosition);
+
+            if (!animated) {
+                int vertices = (int)(length / segmentLength);
+                line.numPositions = vertices;
+
+                for (int currentVertice = 1; currentVertice < vertices; currentVertice++) {
+                    float step = (float)currentVertice / (float)vertices;
+                    Vector3 pos = Vector3.Lerp(originPosition, targetPosition, step);
+                    pos += transform.up * Mathf.Sin(Time.time * waveSpeed + currentVertice * waveLength) * waveHeight * (1 - Mathf.Abs(step - 0.5f)*2);
+                    line.SetPosition(currentVertice, pos);
+                }
+                waveHeight -= Time.deltaTime/waveDuration;
+                if (waveHeight <= 0) {
+                    animated = true;
+                    line.numPositions = 2;
+                }
+            }
+            
+            SetTargetPosition(targetPosition);
 
             transform.LookAt(targetPosition);
             col.center = Vector3.forward * (length / 2);
@@ -98,7 +123,8 @@ public class Link : MonoBehaviour {
 
         } else {
             float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
-            line.SetPosition(1, Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth)));
+            Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
+            SetTargetPosition(mouseWorldPos);
         }
     }
 
@@ -134,6 +160,14 @@ public class Link : MonoBehaviour {
     }
 
     #endregion
+
+    void SetOriginPosition(Vector3 pos) {
+        line.SetPosition(0, pos);
+    }
+
+    void SetTargetPosition(Vector3 pos) {
+        line.SetPosition(line.numPositions - 1, pos);
+    }
 
     void SetWidth(float start, float end) {
         line.startWidth = start;

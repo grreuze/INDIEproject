@@ -73,8 +73,8 @@ public class Star : Element {
 
     IEnumerator CheckShake() {
         bool isShaking = false;
-        int shakeRequired = 10; // Number of mouse x direction change required
-        int delay = 1; // Delay allowed to shake, in seconds
+        int shakeRequired = 6; // Number of mouse x direction change required
+        int delay = 2; // Delay allowed to shake, in seconds
         float shakeTime = Time.time + delay;
         bool previousMove = false;
         bool currentMove = false;
@@ -83,15 +83,16 @@ public class Star : Element {
         while (isShaking == false && Time.time < shakeTime) {
 
             float mouseX = Input.GetAxis("Mouse X");
-            currentMove = Mathf.Sign(mouseX) > 0 && Mathf.Abs(mouseX) > minAmplitude;
+            currentMove = Mathf.Sign(mouseX) > 0;
             
-            if (previousMove != currentMove) {
-                previousMove = currentMove;
-                shakeRequired--;
+            if (Mathf.Abs(mouseX) > minAmplitude) {
+                if (previousMove != currentMove) {
+                    previousMove = currentMove;
+                    shakeRequired--;
+                }
+                if (shakeRequired == 0)
+                    isShaking = true;
             }
-            if (shakeRequired == 0)
-                isShaking = true;
-            
             yield return new WaitForSeconds(Time.deltaTime);
         }
         if (isShaking) {
