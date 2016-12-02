@@ -12,7 +12,9 @@ public class Link : MonoBehaviour {
     }
 
     [SerializeField]
-    Material mat, hoverMat;
+    Material mat;
+    [SerializeField]
+    Material hoverMat;
 
     public Element parent;
     public Element target;
@@ -77,7 +79,7 @@ public class Link : MonoBehaviour {
         line.sharedMaterial = mat;
         parent = transform.parent.GetComponent<Element>();
         col = GetComponent<BoxCollider>();
-        line.SetWidth(width, width);
+        SetWidth(width, width);
         transform.localPosition = Vector3.zero;
     }
 
@@ -92,7 +94,7 @@ public class Link : MonoBehaviour {
             col.size = new Vector3(width, width, length);
             // Collider size seems to be affected by some kind of floating point approximation flaw using Vector3.Distance?
 
-            if (adjustWidth) line.SetWidth(startWidth, endWidth);
+            if (adjustWidth) SetWidth(startWidth, endWidth);
 
         } else {
             float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
@@ -103,7 +105,6 @@ public class Link : MonoBehaviour {
     void OnMouseEnter() {
         if (Mouse.holding && Mouse.holding != target && Mouse.holding != parent &&
             Mouse.holding.GetComponent<Prism>()) {
-
             line.sharedMaterial = hoverMat;
             Mouse.hover = this;
         }
@@ -122,7 +123,7 @@ public class Link : MonoBehaviour {
 
             ps.Play();
             line.enabled = false;
-            Invoke("DestroyLink", ps.startLifetime);
+            Invoke("DestroyLink", ps.main.startLifetime.constant);
         }
     }
 
@@ -133,6 +134,11 @@ public class Link : MonoBehaviour {
     }
 
     #endregion
+
+    void SetWidth(float start, float end) {
+        line.startWidth = start;
+        line.endWidth = end;
+    }
 
     public void DestroyLink() {
         parent.links.Remove(this);
