@@ -24,6 +24,13 @@ public abstract class Element : MonoBehaviour {
     }
     
     public List<int> substractedFrom = new List<int>();
+    
+    [Header("Scale"), SerializeField]
+    Vector3 defaultScale = Vector3.one;
+    [SerializeField]
+    float scaleFactor = 0.2f;
+    [SerializeField]
+    MinMax scale = new MinMax(0, 0.8f);
 
     #endregion
 
@@ -39,13 +46,6 @@ public abstract class Element : MonoBehaviour {
 
     static WorldWrapper wrapper;
     Transform worldTransform;
-
-    [Header("Scale"), SerializeField]
-    Vector3 defaultScale = Vector3.one;
-    [SerializeField]
-    float scaleFactor = 0.2f;
-    [SerializeField]
-    MinMax scale = new MinMax(0, 0.8f);
 
     int loop;
 

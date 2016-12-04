@@ -24,6 +24,7 @@ public class GameController : MonoBehaviour {
     Vector2 momentum;
 
     bool isDragging;
+    WorldSpaceCursor cursor;
 
     #endregion
 
@@ -34,6 +35,14 @@ public class GameController : MonoBehaviour {
         pitch = angles.y;
         yaw = angles.x;
         wrapper = WorldWrapper.singleton;
+
+        cursor = FindObjectOfType<WorldSpaceCursor>();
+        Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Confined;
+    }
+
+    void OnApplicationFocus() {
+        Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Confined;
     }
 
@@ -65,8 +74,9 @@ public class GameController : MonoBehaviour {
         RightClickControls();
     }
 
+    bool noCursor;
     void LeftClickControls() {
-        if (Input.GetMouseButtonUp(0) && !Cursor.visible) {
+        if (Input.GetMouseButtonUp(0) && noCursor) {
             StartCoroutine(Momentum());
             isDragging = false;
         }
@@ -83,11 +93,12 @@ public class GameController : MonoBehaviour {
 
             momentum.x = Input.GetAxis("Mouse X");
             momentum.y = Input.GetAxis("Mouse Y");
-
-            Cursor.visible = false;
+            noCursor = true;
+            cursor.gameObject.SetActive(false);
 
         } else {
-            Cursor.visible = true;
+            noCursor = false;
+            cursor.gameObject.SetActive(true);
             MousePositionZoom();
         }
     }
