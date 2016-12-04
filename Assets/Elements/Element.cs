@@ -11,13 +11,16 @@ public abstract class Element : MonoBehaviour {
     public Existence existence;
 
     public Chroma chroma;
+	public Color outlineColorWhenChromaIsWhite;
+	public Color hoverColor; 
 
     public List<Link> links = new List<Link>();
     public List<Link> targeted = new List<Link>();
 
     public int id;
 
-    public Material mat, hoverMat;
+    //public Material mat, hoverMat;
+	public Material mat;
 
     public bool isActive {
         get { return rend.enabled; }
@@ -63,7 +66,14 @@ public abstract class Element : MonoBehaviour {
         rend = GetComponent<Renderer>();
         rend.sharedMaterial = mat;
 
-        rend.material.SetColor("_EmissionColor", chroma.color);
+		if (chroma.color == Color.white)
+		{
+			rend.material.SetColor("_Outline_Color", outlineColorWhenChromaIsWhite);
+		}
+		else
+		{
+			rend.material.SetColor("_Outline_Color", chroma.color);
+		}
 
         if (!wrapper) wrapper = WorldWrapper.singleton;
         GetWorldInstance();
@@ -89,7 +99,10 @@ public abstract class Element : MonoBehaviour {
         if (!isHeld && !Input.GetMouseButton(0) && Mouse.holding == null) {
             hovered = true;
             Mouse.hover = this;
-            rend.sharedMaterial = hoverMat;
+            //rend.sharedMaterial = hoverMat;
+			//rend.material.SetColor("_Color", chroma.color);
+			rend.material.SetColor("_Color", hoverColor);
+			rend.material.SetFloat ("_Atmospheric_Opacity_or_Opaque", 1);
         }
     }
 
@@ -114,7 +127,14 @@ public abstract class Element : MonoBehaviour {
     void Recolor() {
         chroma.ReBalance();
         rend.sharedMaterial = mat;
-        rend.material.SetColor("_EmissionColor", chroma.color);
+		if (chroma.color == Color.white)
+		{
+			rend.material.SetColor("_Outline_Color", outlineColorWhenChromaIsWhite);
+		}
+		else
+		{
+			rend.material.SetColor("_Outline_Color", chroma.color);
+		}
     }
 
     #endregion
