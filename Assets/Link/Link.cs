@@ -70,11 +70,17 @@ public class Link : MonoBehaviour {
     }
 
     Vector3 originPosition {
-        get { return GetMetaPosition(transform.position, ref parentMetaPos, originLoop, worldInstance.loop); }
+        get {
+            int worldLoop = parent.isHeld ? WorldWrapper.singleton.currentInstance.loop : worldInstance.loop;
+            return GetMetaPosition(transform.position, ref parentMetaPos, originLoop, worldLoop);
+        }
     }
 
     Vector3 targetPosition {
-        get { return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, target.worldInstance.loop); }
+        get {
+            int worldLoop = target.isHeld ? WorldWrapper.singleton.currentInstance.loop : target.worldInstance.loop;
+            return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, worldLoop);
+        }
     }
 
     #endregion
@@ -140,9 +146,9 @@ public class Link : MonoBehaviour {
             ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
             ps.transform.localEulerAngles = 90 * Vector3.up;
             ps.transform.localPosition = Vector3.forward * (length / 2);
-
+            
             ParticleSystem.EmissionModule emission = ps.emission;
-            emission.rate = 70 * length;
+            emission.rateOverTime = 70 * length;
 
             ParticleSystem.ShapeModule shape = ps.shape;
             shape.radius = length / 2;

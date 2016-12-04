@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 
 public class Prism : Element {
 
@@ -12,6 +13,7 @@ public class Prism : Element {
     /// </summary>
     Link attachedLink;
     Star targetedStar, oppositeStar;
+    Chroma formerChroma;
 
     #endregion
 
@@ -31,6 +33,8 @@ public class Prism : Element {
 
     #endregion
 
+    #region Holding Methods
+
     public override void StartHold() {
         if (targetedStar) DetachLink();
         base.StartHold();
@@ -42,6 +46,31 @@ public class Prism : Element {
             AttachToLink();
         base.StopHold();
     }
+
+    #endregion
+
+    public void UpdateTargetColor() {
+        if (formerChroma != oppositeStar.chroma) {
+            targetedStar.chroma.Maximize();
+            formerChroma.Maximize();
+            oppositeStar.chroma.Maximize();
+            StartCoroutine(_UpdateColor());
+        }
+    }
+
+    IEnumerator _UpdateColor() {
+        yield return new WaitForSeconds(0.1f);
+        Chroma empty = targetedStar.chroma - formerChroma;
+        empty.ReBalance(); // Lots of things wrong in chroma color calculation still...
+        Debug.Log(targetedStar.chroma + " - " + formerChroma + " = " + empty + " + " + oppositeStar.chroma);
+
+        targetedStar.chroma = empty + oppositeStar.chroma;
+        targetedStar.ApplyChroma();
+        formerChroma = oppositeStar.chroma;
+        formerChroma.ReBalance();
+    }
+
+    #region Link Methods
 
     void AttachToLink() {
         RaycastHit hit;
@@ -55,20 +84,32 @@ public class Prism : Element {
         oppositeStar = position < 0.5f ? (Star)attachedLink.target : (Star)attachedLink.parent;
 
         transform.LookAt(targetedStar.transform);
-        
+
+        oppositeStar.prisms.Add(this);
+
+        Debug.Log(targetedStar.chroma + " + " + chroma + " + " + oppositeStar.chroma);
+
         targetedStar.chroma += chroma;
-        targetedStar.chroma += oppositeStar.chroma;
+        targetedStar.chroma += oppositeStar.chroma; // we shouldn't be adding this for every prism on a same link
         targetedStar.ApplyChroma();
+
+        formerChroma = oppositeStar.chroma;
     }
 
     void DetachLink() {
         if (targetedStar.isActive && attachedLink) {
-            targetedStar.chroma -= chroma;
-            targetedStar.chroma -= oppositeStar.chroma;
+            Chroma chromaToLose = chroma + oppositeStar.chroma;
+            chromaToLose.ReBalance();
+            targetedStar.chroma.ReBalance();
+            Debug.Log(targetedStar.chroma + " - " + chromaToLose);
+            targetedStar.chroma -= chromaToLose;
             targetedStar.ApplyChroma();
         }
+        oppositeStar.prisms.Remove(this);
         targetedStar = null;
         attachedLink = null;
     }
+
+    #endregion
 
 }

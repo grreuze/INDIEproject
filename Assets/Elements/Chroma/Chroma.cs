@@ -23,18 +23,32 @@ public struct Chroma {
     public bool isPure {
         get { return r + g + b == 1; }
     }
+    
+    public void Maximize() {
+        if (Mathf.Max(r, g, b) == 1)
+            this *= MAX;
+    }
+
+    public void Floor() {
+        if (r < 0) r = 0;
+        if (g < 0) g = 0;
+        if (b < 0) b = 0;
+    }
 
     public void ReBalance() {
+        while (r < 0 || g < 0 || b < 0) {
+            r++;
+            g++;
+            b++;
+        }
         while (r > MAX || g > MAX || b > MAX) {
              r--;
              g--;
              b--;
         }
-        while (r < 0 || g < 0 ||b < 0) {
-            r++;
-            g++;
-            b++;
-        }
+        if (r < 0) r = 0;
+        if (g < 0) g = 0;
+        if (b < 0) b = 0;
 
         if (r == g && g == b)
             r = g = b = 1;
@@ -42,6 +56,10 @@ public struct Chroma {
         if (r == r + g + b) r = 1;
         if (g == r + g + b) g = 1;
         if (b == r + g + b) b = 1;
+    }
+
+    public override string ToString() {
+        return "Chroma(" + r + ", " + g + ", " + b + ")";
     }
 
     #region Static Colors
