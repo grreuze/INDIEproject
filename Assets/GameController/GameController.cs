@@ -88,7 +88,7 @@ public class GameController : MonoBehaviour {
 
         } else {
             Cursor.visible = true;
-            MousePositionZoom();
+            //MousePositionZoom();
         }
     }
 

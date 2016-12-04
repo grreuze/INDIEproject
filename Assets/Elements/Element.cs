@@ -63,7 +63,7 @@ public abstract class Element : MonoBehaviour {
         rend = GetComponent<Renderer>();
         rend.sharedMaterial = mat;
 
-        rend.material.SetColor("_EmissionColor", chroma.color);
+        rend.material.SetColor("_Color", chroma.color);
 
         if (!wrapper) wrapper = WorldWrapper.singleton;
         GetWorldInstance();
@@ -114,7 +114,7 @@ public abstract class Element : MonoBehaviour {
     void Recolor() {
         chroma.ReBalance();
         rend.sharedMaterial = mat;
-        rend.material.SetColor("_EmissionColor", chroma.color);
+        rend.material.SetColor("_Color", chroma.color);
     }
 
     #endregion
