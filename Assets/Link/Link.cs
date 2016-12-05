@@ -76,7 +76,7 @@ public class Link : MonoBehaviour {
     Vector3 originPosition {
         get {
             int worldLoop = parent.isHeld ? WorldWrapper.singleton.currentInstance.loop : worldInstance.loop;
-            return GetMetaPosition(transform.position, ref parentMetaPos, originLoop, worldLoop);
+            return GetMetaPosition(parent.transform.position, ref parentMetaPos, originLoop, worldLoop);
         }
     }
 
@@ -86,6 +86,8 @@ public class Link : MonoBehaviour {
             return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, worldLoop);
         }
     }
+
+    float screenDepth;
 
     #endregion
 
@@ -98,13 +100,14 @@ public class Link : MonoBehaviour {
         col = GetComponent<BoxCollider>();
         SetWidth(width, width);
         transform.localPosition = Vector3.zero;
+        screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
-        transform.position = originPosition; // sometimes infinity
         SetOriginPosition(originPosition);
 
         if (connected) {
+            transform.position = originPosition; // sometimes infinity
 
             if (!animated) {
                 int vertices = (int)(length / segmentLength);
@@ -129,7 +132,6 @@ public class Link : MonoBehaviour {
             if (adjustWidth) SetWidth(startWidth, endWidth);
 
         } else {
-            float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
             Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
             SetTargetPosition(mouseWorldPos);
         }
@@ -169,7 +171,7 @@ public class Link : MonoBehaviour {
     #endregion
 
     void SetCollider() {
-        transform.LookAt(targetPosition);
+        transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
         col.size = new Vector3(width, width, length);
     }

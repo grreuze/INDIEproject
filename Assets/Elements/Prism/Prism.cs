@@ -96,7 +96,7 @@ public class Prism : Element {
             transform.position = hit.point;
 
         position = Vector3.Distance(transform.position, attachedLink.parent.transform.position) / attachedLink.length;
-
+        
         bool isFirstPrism = false;
         if (position < 0.5f) {
             targetedStar = (Star)attachedLink.parent;

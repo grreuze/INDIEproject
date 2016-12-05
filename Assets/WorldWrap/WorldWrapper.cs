@@ -62,7 +62,7 @@ public class WorldWrapper : MonoBehaviour {
     /// <param name="value"> The value of the Zoom to perform </param>
     public void Zoom(float value) {
         for (int i = 0; i < worldInstances.Count; i++) {
-            worldInstances[i].transform.localScale += value * worldInstances[i].transform.localScale * scaleSpeed;
+            worldInstances[i].transform.localScale += value * worldInstances[i].transform.localScale * scaleSpeed; // sometimes infinity
 
             worldInstances[i].name = "WorldInstance [" + i + "]";
 
@@ -84,7 +84,7 @@ public class WorldWrapper : MonoBehaviour {
 
     public void Rotate(Vector3 rotation) {
         for (int i = 0; i < worldInstances.Count; i++) {
-            worldInstances[i].transform.Rotate(rotation, Space.World);
+            worldInstances[i].transform.Rotate(rotation, Space.World); // sometimes infinity
         }
     }
 

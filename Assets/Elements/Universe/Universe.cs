@@ -8,29 +8,27 @@ public class Universe : MonoBehaviour
     bool doOnce = true;
     GameObject miniUniverse;
     [SerializeField]float speed;
-
-    // Use this for initialization
-    void Start()
-    {
+    GameController gc;
+    ParticleSystem ps;
+    
+    void Start() {
         miniUniverse = new GameObject();
         miniUniverse.name = "MiniUniverse";
         miniUniverse.transform.parent = this.transform;
+        gc = Camera.main.GetComponent<GameController>();
+        ps = GetComponent<ParticleSystem>();
     }
-
-    // Update is called once per frame
-    void Update()
-    {
+    
+    void Update() {
         Initialisation();
     }
 
-
-    void Initialisation()
-    {
-        if (WorldWrapper.singleton.worldInstances.Count == 4 && doOnce)
-        {
-            Camera.main.GetComponent<GameController>().zoomSpeed = 0;
-            foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances)
-            {
+    float zoomSpeed, zoomSpeedModifier = 10;
+    void Initialisation() {
+        if (WorldWrapper.singleton.worldInstances.Count == 4 && doOnce) {
+            zoomSpeed = gc.zoomSpeed;
+            gc.zoomSpeed = 0;
+            foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances) {
                 Winstance.transform.parent = miniUniverse.transform;
             }
             miniUniverse.transform.localScale = new Vector3(0.00005f, 0.00005f, 0.00005f);
@@ -44,19 +42,26 @@ public class Universe : MonoBehaviour
         GetComponent<MeshRenderer>().enabled = false;
         Destroy(GameObject.Find("GameTitle"));
     }
+    
+    IEnumerator StartGame() {
 
+        ps.Clear();
+        ps.Stop();
 
-    IEnumerator StartGame()
-    {
+        gc.zoomSpeed = zoomSpeed * zoomSpeedModifier;
 
-        while (miniUniverse.transform.localScale.x < 0.95)
-        {
+        while (miniUniverse.transform.localScale.x < 0.999) {
+
             miniUniverse.transform.localScale = Vector3.Lerp(miniUniverse.transform.localScale, Vector3.one, Time.deltaTime * speed);
+            gc.zoomSpeed = Mathf.Lerp(zoomSpeed * zoomSpeedModifier, zoomSpeed, Time.deltaTime * speed);
+
             yield return new WaitForEndOfFrame();
         }
-        Camera.main.GetComponent<GameController>().zoomSpeed = 0.5f;
-        foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances)
-        {
+
+        miniUniverse.transform.localScale = Vector3.one;
+        gc.zoomSpeed = zoomSpeed;
+
+        foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances) {
             Winstance.transform.parent = null;
         }
         Destroy(gameObject);
