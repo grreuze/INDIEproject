@@ -10,10 +10,9 @@ public class WorldWrapper : MonoBehaviour {
     [Tooltip("The distance between each instance.")]
     public float scaleFactor = 10;
     public float scaleSpeed = 0.05f;
-
-    float minScale, maxScale;
-
     public static WorldWrapper singleton;
+    float minScale, maxScale;
+    Universe universe;
 
     /// <summary>
     /// The ID of the instance the camera is currently in.
@@ -21,9 +20,7 @@ public class WorldWrapper : MonoBehaviour {
     int currentID;
     public WorldInstance currentInstance {
         get {
-
             // to do: get the instance closest to scale 1
-
             return worldInstances[currentID];
         }
     }
@@ -32,6 +29,7 @@ public class WorldWrapper : MonoBehaviour {
         singleton = this;
         maxScale = scaleFactor * scaleFactor;
         minScale = 1 / maxScale;
+        universe = FindObjectOfType<Universe>();
     }
 
     public void Generate() {
@@ -54,6 +52,7 @@ public class WorldWrapper : MonoBehaviour {
         worldInstances[3].name = "WorldInstance [3]";
 
         numberOfInstances = worldInstances.Count;
+        universe.Initialisation();
     }
 
     /// <summary>

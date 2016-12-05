@@ -1,72 +1,63 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class Universe : MonoBehaviour
-{
-
-    bool doOnce = true;
+public class Universe : MonoBehaviour {
+    
     GameObject miniUniverse;
-    [SerializeField]float speed;
+    [SerializeField]
+    float duration = 2;
+    [SerializeField]
+    AnimationCurve animCurve, vignetteCurve = null;
     GameController gc;
     ParticleSystem ps;
-    
+    float zoomSpeed, zoomSpeedModifier = 20;
+    Vector3 small = Vector3.one * 0.00001f;
+    Vignette vignette;
+
     void Start() {
         miniUniverse = new GameObject();
         miniUniverse.name = "MiniUniverse";
         miniUniverse.transform.parent = this.transform;
         gc = Camera.main.GetComponent<GameController>();
         ps = GetComponent<ParticleSystem>();
-    }
-    
-    void Update() {
-        Initialisation();
+        vignette = Camera.main.GetComponent<Vignette>();
     }
 
-    float zoomSpeed, zoomSpeedModifier = 10;
-    void Initialisation() {
-        if (WorldWrapper.singleton.worldInstances.Count == 4 && doOnce) {
-            zoomSpeed = gc.zoomSpeed;
-            gc.zoomSpeed = 0;
-            foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances) {
-                Winstance.transform.parent = miniUniverse.transform;
-            }
-            miniUniverse.transform.localScale = new Vector3(0.00005f, 0.00005f, 0.00005f);
-            doOnce = false;
-        }
+    public void Initialisation() {
+        zoomSpeed = gc.zoomSpeed;
+        gc.zoomSpeed = 0;
+        foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances)
+            Winstance.transform.parent = miniUniverse.transform;
+        miniUniverse.transform.localScale = small;
     }
 
-    void OnMouseDown()
-    {
+    void OnMouseDown() {
         StartCoroutine("StartGame");
-        GetComponent<MeshRenderer>().enabled = false;
         Destroy(GameObject.Find("GameTitle"));
     }
     
     IEnumerator StartGame() {
-
         ps.Clear();
         ps.Stop();
-
         gc.zoomSpeed = zoomSpeed * zoomSpeedModifier;
+        
 
-        while (miniUniverse.transform.localScale.x < 0.999) {
+        for (float elapsed = 0; elapsed < duration; elapsed+=Time.deltaTime) {
+            float t = elapsed / duration;
 
-            miniUniverse.transform.localScale = Vector3.Lerp(miniUniverse.transform.localScale, Vector3.one, Time.deltaTime * speed);
-            gc.zoomSpeed = Mathf.Lerp(zoomSpeed * zoomSpeedModifier, zoomSpeed, Time.deltaTime * speed);
+            vignette.color = Color.Lerp(Color.black, Color.white, vignetteCurve.Evaluate(t));
+            miniUniverse.transform.localScale = Vector3.Lerp(small, Vector3.one, animCurve.Evaluate(t));
+            gc.zoomSpeed = Mathf.Lerp(zoomSpeed * zoomSpeedModifier, zoomSpeed, animCurve.Evaluate(t));
 
-            yield return new WaitForEndOfFrame();
+            yield return null;
         }
-
         miniUniverse.transform.localScale = Vector3.one;
         gc.zoomSpeed = zoomSpeed;
 
-        foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances) {
+        foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances)
             Winstance.transform.parent = null;
-        }
-        Destroy(gameObject);
-        yield return new WaitForEndOfFrame();
 
+        Destroy(gameObject);
     }
 
 }

@@ -9,6 +9,8 @@ public class Star : Element {
     public bool anchored;
 
     StarParticles particles;
+    [SerializeField]
+    GameObject destroyParticles;
 
     #endregion
 
@@ -87,6 +89,7 @@ public class Star : Element {
             yield return new WaitForSeconds(Time.deltaTime);
         }
         if (isShaking) {
+            Instantiate(destroyParticles, transform.position, Quaternion.identity); //spawn the breaking particles
             BreakStar();
         } else ResetCheckShake();
     }
