@@ -44,7 +44,7 @@ public class Star : Element {
     }
 
     void CreatePrisms() {
-        if (chroma.isPure) chroma *= Chroma.MAX; //If only one color, give 3 prisms instead of one
+        if (chroma.isPrimary) chroma *= Chroma.MAX; //If only one color, give 3 prisms instead of one
 
         for (int i = 0; i < chroma.r; i++)
             CreatePrism(Chroma.red);

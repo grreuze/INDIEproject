@@ -16,9 +16,7 @@ public abstract class Element : MonoBehaviour {
 
     public List<Link> links = new List<Link>();
     public List<Link> targeted = new List<Link>();
-
-    public List<Prism> prisms = new List<Prism>();
-
+    
     public int id;
     
 	public Material mat;
@@ -127,7 +125,14 @@ public abstract class Element : MonoBehaviour {
     public void ApplyChroma() {
         Recolor();
         if (GetComponent<Star>()) Debug.Log(chroma);
-        if (prisms.Count > 0) prisms[0].UpdateTargetColor();
+
+        foreach (Link link in links) {// Links I am the origin of
+            if (link.prismToTarget.Count > 0) link.prismToTarget[0].UpdateTargetColor();
+        }
+        foreach (Link link in targeted) {// Links I am the target of
+            if (link.prismToOrigin.Count > 0) link.prismToOrigin[0].UpdateTargetColor();
+        }
+        
         if (existence == Existence.cloned) RecolorClones();
     }
 
@@ -318,7 +323,7 @@ public abstract class Element : MonoBehaviour {
         localScale.y = Mathf.Clamp(localScale.y, scale.min * parentScale.y, scale.max * parentScale.y);
         localScale.z = Mathf.Clamp(localScale.z, scale.min * parentScale.z, scale.max * parentScale.z);
 
-        transform.localScale = localScale;
+        transform.localScale = localScale; //sometimes infinity
         FixPosition();
     }
 
