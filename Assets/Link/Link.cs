@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections.Generic;
 
 [RequireComponent(typeof(BoxCollider))]
 public class Link : MonoBehaviour {
@@ -25,6 +24,7 @@ public class Link : MonoBehaviour {
     public int targetLoop;
     public int originLoop;
     public bool connected;
+	public float colliderSizeMultiplier = 1;
     
     [SerializeField]
     bool adjustWidth;
@@ -45,11 +45,8 @@ public class Link : MonoBehaviour {
     /// The length of the link. Distance between originPosition and targetPosition.
     /// </summary>
     public float length {
-        get { return Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x; }
+        get { return Vector3.Distance(originPosition, targetPosition); }
     }
-
-    public List<Prism> prismToOrigin;
-    public List<Prism> prismToTarget;
 
     enum MetaPosition { InRange, External, Internal }
     MetaPosition parentMetaPos, targetMetaPos;
@@ -74,17 +71,11 @@ public class Link : MonoBehaviour {
     }
 
     Vector3 originPosition {
-        get {
-            int worldLoop = parent.isHeld ? WorldWrapper.singleton.currentInstance.loop : worldInstance.loop;
-            return GetMetaPosition(transform.position, ref parentMetaPos, originLoop, worldLoop);
-        }
+        get { return GetMetaPosition(transform.position, ref parentMetaPos, originLoop, worldInstance.loop); }
     }
 
     Vector3 targetPosition {
-        get {
-            int worldLoop = target.isHeld ? WorldWrapper.singleton.currentInstance.loop : target.worldInstance.loop;
-            return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, worldLoop);
-        }
+        get { return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, target.worldInstance.loop); }
     }
 
     #endregion
@@ -101,7 +92,6 @@ public class Link : MonoBehaviour {
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
-        transform.position = originPosition; // sometimes infinity
         SetOriginPosition(originPosition);
 
         if (connected) {
@@ -124,7 +114,11 @@ public class Link : MonoBehaviour {
             }
             
             SetTargetPosition(targetPosition);
-            SetCollider();
+
+            transform.LookAt(targetPosition);
+            col.center = Vector3.forward * (length / 2);
+			col.size = new Vector3(width * colliderSizeMultiplier, width * colliderSizeMultiplier, length);
+            // Collider size seems to be affected by some kind of floating point approximation flaw using Vector3.Distance?
 
             if (adjustWidth) SetWidth(startWidth, endWidth);
 
@@ -142,14 +136,14 @@ public class Link : MonoBehaviour {
             Mouse.hover = this;
         }
 
-        if (Mouse.breakLinkMode && !destroyed && isVisible) {
+        if (Mouse.breakLinkMode && !destroyed) {
             destroyed = true;
             ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
             ps.transform.localEulerAngles = 90 * Vector3.up;
             ps.transform.localPosition = Vector3.forward * (length / 2);
-            
+
             ParticleSystem.EmissionModule emission = ps.emission;
-            emission.rateOverTime = 70 * length;
+            emission.rate = 70 * length;
 
             ParticleSystem.ShapeModule shape = ps.shape;
             shape.radius = length / 2;
@@ -167,12 +161,6 @@ public class Link : MonoBehaviour {
     }
 
     #endregion
-
-    void SetCollider() {
-        transform.LookAt(targetPosition);
-        col.center = Vector3.forward * (length / 2); // sometimes infinity
-        col.size = new Vector3(width, width, length);
-    }
 
     void SetOriginPosition(Vector3 pos) {
         line.SetPosition(0, pos);
@@ -204,7 +192,7 @@ public class Link : MonoBehaviour {
     Vector3 GetMetaPosition(Vector3 point, ref MetaPosition pos, int loop, int worldLoop) {
         if (worldLoop > loop) {
             pos = MetaPosition.External;
-            return point.normalized * 1000; // Float approximation, not the best method
+            return point.normalized * 1000;
         } else if (worldLoop < loop) {
             pos = MetaPosition.Internal;
             return Vector3.zero;

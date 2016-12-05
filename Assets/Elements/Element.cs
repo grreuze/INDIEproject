@@ -16,9 +16,10 @@ public abstract class Element : MonoBehaviour {
 
     public List<Link> links = new List<Link>();
     public List<Link> targeted = new List<Link>();
-    
+
     public int id;
-    
+
+    //public Material mat, hoverMat;
 	public Material mat;
 
     public bool isActive {
@@ -33,41 +34,28 @@ public abstract class Element : MonoBehaviour {
     float scaleFactor = 0.2f;
     [SerializeField]
     MinMax scale = new MinMax(0, 0.8f);
-    
-    /// <summary>
-    /// Returns whether or not the player is holding this element.
-    /// </summary>
-    public bool isHeld {
-        get { return hovered && Input.GetMouseButton(0); }
-    }
 
     #endregion
 
     #region Private Properties
 
     bool hovered;
+    /// <summary>
+    /// Returns whether or not the player is holding this element.
+    /// </summary>
+    bool isHeld {
+        get { return hovered && Input.GetMouseButton(0); }
+    }
 
     static WorldWrapper wrapper;
     Transform worldTransform;
 
-    /// <summary>
-    /// If the element is unique, the loop in which it exists.
-    /// </summary>
-    int existenceLoop;
+    int loop;
 
     Collider col;
     Renderer rend;
 
     Star[] clones;
-
-    Color outlineColor {
-        get {
-            return rend.material.GetColor("_Outline_Color");
-        }
-        set {;
-            rend.material.SetColor("_Outline_Color", value);
-        }
-    }
 
     #endregion
 
@@ -78,14 +66,21 @@ public abstract class Element : MonoBehaviour {
         rend = GetComponent<Renderer>();
         rend.sharedMaterial = mat;
 
-        outlineColor = chroma.color == Color.white ? outlineColorWhenChromaIsWhite : chroma.color;
-        
+		if (chroma.color == Color.white)
+		{
+			rend.material.SetColor("_Outline_Color", outlineColorWhenChromaIsWhite);
+		}
+		else
+		{
+			rend.material.SetColor("_Outline_Color", chroma.color);
+		}
+
         if (!wrapper) wrapper = WorldWrapper.singleton;
         GetWorldInstance();
         if (existence == Existence.cloned)
             GetAllClones();
         if (existence == Existence.unique)
-            existenceLoop = worldInstance.loop;
+            loop = worldInstance.loop;
     }
 
     void Update() {
@@ -94,7 +89,7 @@ public abstract class Element : MonoBehaviour {
         CheckLink();
 
         if (existence == Existence.unique)
-            SetActive(existenceLoop == worldInstance.loop);
+            SetActive(loop == worldInstance.loop);
         else
         if (existence == Existence.substracted)
             SetActive(!substractedFrom.Contains(worldInstance.loop));
@@ -104,6 +99,8 @@ public abstract class Element : MonoBehaviour {
         if (!isHeld && !Input.GetMouseButton(0) && Mouse.holding == null) {
             hovered = true;
             Mouse.hover = this;
+            //rend.sharedMaterial = hoverMat;
+			//rend.material.SetColor("_Color", chroma.color);
 			rend.material.SetColor("_Color", hoverColor);
 			rend.material.SetFloat ("_Atmospheric_Opacity_or_Opaque", 1);
         }
@@ -124,22 +121,20 @@ public abstract class Element : MonoBehaviour {
 
     public void ApplyChroma() {
         Recolor();
-        if (GetComponent<Star>()) Debug.Log(chroma);
-
-        foreach (Link link in links) {// Links I am the origin of
-            if (link.prismToTarget.Count > 0) link.prismToTarget[0].UpdateTargetColor();
-        }
-        foreach (Link link in targeted) {// Links I am the target of
-            if (link.prismToOrigin.Count > 0) link.prismToOrigin[0].UpdateTargetColor();
-        }
-        
         if (existence == Existence.cloned) RecolorClones();
     }
 
     void Recolor() {
         chroma.ReBalance();
         rend.sharedMaterial = mat;
-        outlineColor = chroma.color == Color.white ? outlineColorWhenChromaIsWhite : chroma.color;
+		if (chroma.color == Color.white)
+		{
+			rend.material.SetColor("_Outline_Color", outlineColorWhenChromaIsWhite);
+		}
+		else
+		{
+			rend.material.SetColor("_Outline_Color", chroma.color);
+		}
     }
 
     #endregion
@@ -150,9 +145,7 @@ public abstract class Element : MonoBehaviour {
         if (isHeld) {
             if (Mouse.holding != this) StartHold();
             MoveToMousePosition();
-        } else if (Mouse.holding == this) {
-            StopHold();
-        }
+        } else if (Mouse.holding == this) StopHold();
     }
 
     void StopHover() {
@@ -200,16 +193,18 @@ public abstract class Element : MonoBehaviour {
     /// </summary>
     /// <param name="diff"> The difference between the current instance and the desired one. </param>
     void SetNewInstance(int diff) {
+        if (worldInstance.id == wrapper.numberOfInstances - 1) {
+            transform.localScale = Vector3.one * 100;
+        }
         int newid = InverseInstanceID(diff);
-        transform.localScale = Vector3.zero;
         transform.parent = wrapper.worldInstances[newid].transform;
         GetWorldInstance();
     }
     
     void ChangeInstance() {
         if (existence == Existence.unique)
-            existenceLoop = worldInstance.loop;
-        
+            loop = worldInstance.loop;
+
         int diff = wrapper.currentInstance.id - worldInstance.id;
         if (diff == 0)
             transform.parent = worldTransform;
@@ -323,7 +318,7 @@ public abstract class Element : MonoBehaviour {
         localScale.y = Mathf.Clamp(localScale.y, scale.min * parentScale.y, scale.max * parentScale.y);
         localScale.z = Mathf.Clamp(localScale.z, scale.min * parentScale.z, scale.max * parentScale.z);
 
-        transform.localScale = localScale; //sometimes infinity
+        transform.localScale = localScale;
         FixPosition();
     }
 
