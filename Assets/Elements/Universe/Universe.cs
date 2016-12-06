@@ -41,7 +41,6 @@ public class Universe : MonoBehaviour {
         ps.Stop();
         gc.zoomSpeed = zoomSpeed * zoomSpeedModifier;
         
-
         for (float elapsed = 0; elapsed < duration; elapsed+=Time.deltaTime) {
             float t = elapsed / duration;
 
