@@ -11,7 +11,7 @@ public class Prism : Element {
     /// <summary>
     /// The Link the Prism is currently attached to, if any.
     /// </summary>
-    Link attachedLink;
+    public Link attachedLink;
     Star targetedStar, oppositeStar;
     Chroma formerChroma;
 
@@ -144,8 +144,10 @@ public class Prism : Element {
             }
             targetedStar.ApplyChroma();
         }
-        if (position < 0.5f && attachedLink) attachedLink.prismToOrigin.Remove(this);
-        else attachedLink.prismToTarget.Remove(this);
+        if (attachedLink) {
+            if (position < 0.5f) attachedLink.prismToOrigin.Remove(this);
+            else attachedLink.prismToTarget.Remove(this);
+        }
 
         targetedStar = null;
         attachedLink = null;

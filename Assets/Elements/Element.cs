@@ -209,7 +209,6 @@ public abstract class Element : MonoBehaviour {
     void ChangeInstance() {
         if (existence == Existence.unique)
             existenceLoop = worldInstance.loop;
-        
         int diff = wrapper.currentInstance.id - worldInstance.id;
         if (diff == 0)
             transform.parent = worldTransform;
@@ -300,9 +299,9 @@ public abstract class Element : MonoBehaviour {
 
     public void DestroyAllLinks() {
         while (links.Count > 0)
-            links[0].DestroyLink();
+            links[0].BreakLink();
         while (targeted.Count > 0)
-            targeted[0].DestroyLink();
+            targeted[0].BreakLink();
     }
 
     #endregion

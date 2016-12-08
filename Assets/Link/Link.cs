@@ -145,20 +145,7 @@ public class Link : MonoBehaviour {
         }
 
         if (Mouse.breakLinkMode && !destroyed && isVisible) {
-            destroyed = true;
-            ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
-            ps.transform.localEulerAngles = 90 * Vector3.up;
-            ps.transform.localPosition = Vector3.forward * (length / 2);
-            
-            ParticleSystem.EmissionModule emission = ps.emission;
-            emission.rateOverTime = 70 * length;
-
-            ParticleSystem.ShapeModule shape = ps.shape;
-            shape.radius = length / 2;
-
-            ps.Play();
-            line.enabled = false;
-            Invoke("DestroyLink", ps.main.startLifetime.constant);
+            BreakLink();
         }
     }
 
@@ -189,9 +176,30 @@ public class Link : MonoBehaviour {
         line.endWidth = end;
     }
 
-    public void DestroyLink() {
+    public void BreakLink() {
+        destroyed = true;
+        ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
+        ps.transform.localEulerAngles = 90 * Vector3.up;
+        ps.transform.localPosition = Vector3.forward * (length / 2);
+
+        ParticleSystem.EmissionModule emission = ps.emission;
+        emission.rateOverTime = 70 * length;
+
+        ParticleSystem.ShapeModule shape = ps.shape;
+        shape.radius = length / 2;
+
+        ps.Play();
+        line.enabled = false;
+        foreach (Prism prism in prismToOrigin)
+            prism.attachedLink = null;
+        foreach (Prism prism in prismToTarget)
+            prism.attachedLink = null;
         parent.links.Remove(this);
         target.targeted.Remove(this);
+        Invoke("DestroyLink", ps.main.startLifetime.constant);
+    }
+
+    void DestroyLink() {
         // We should also remove the loops containing this link
         Destroy(gameObject); // We should probably do object pooling for links
     }
