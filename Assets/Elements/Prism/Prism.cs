@@ -11,7 +11,7 @@ public class Prism : Element {
     /// <summary>
     /// The Link the Prism is currently attached to, if any.
     /// </summary>
-    Link attachedLink;
+    public Link attachedLink;
     Star targetedStar, oppositeStar;
     Chroma formerChroma;
 
@@ -110,7 +110,8 @@ public class Prism : Element {
             isFirstPrism = attachedLink.prismToTarget[0] == this;
         }
         transform.LookAt(targetedStar.transform);
-        
+
+        targetedStar.chroma.Maximize();
         if (isFirstPrism) {
             Debug.Log(targetedStar.chroma + " + " + chroma + " + " + oppositeStar.chroma);
             targetedStar.chroma += oppositeStar.chroma;
@@ -125,15 +126,28 @@ public class Prism : Element {
 
     void DetachLink() {
         if (targetedStar.isActive && attachedLink) {
-            Chroma chromaToLose = chroma + oppositeStar.chroma;
-            chromaToLose.ReBalance();
-            targetedStar.chroma.ReBalance();
-            Debug.Log(targetedStar.chroma + " - " + chromaToLose);
-            targetedStar.chroma -= chromaToLose;
+            Chroma chromaToLose = chroma;
+
+            if (position < 0.5f && attachedLink.prismToOrigin.Count == 1
+             || position > 0.5f && attachedLink.prismToTarget.Count == 1) {
+                chromaToLose += oppositeStar.chroma;
+                chromaToLose.ReBalance();
+                targetedStar.chroma.ReBalance();
+                Debug.Log(targetedStar.chroma + " - " + chromaToLose);
+                targetedStar.chroma -= chromaToLose;
+            }
+            else {
+                chromaToLose = (0 - chroma).rebalanced;
+                targetedStar.chroma.ReBalance();
+                Debug.Log(targetedStar.chroma + " + " + chromaToLose);
+                targetedStar.chroma += chromaToLose;
+            }
             targetedStar.ApplyChroma();
         }
-        if (position < 0.5f && attachedLink) attachedLink.prismToOrigin.Remove(this);
-        else attachedLink.prismToTarget.Remove(this);
+        if (attachedLink) {
+            if (position < 0.5f) attachedLink.prismToOrigin.Remove(this);
+            else attachedLink.prismToTarget.Remove(this);
+        }
 
         targetedStar = null;
         attachedLink = null;

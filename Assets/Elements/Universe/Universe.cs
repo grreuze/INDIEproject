@@ -26,11 +26,9 @@ public class Universe : MonoBehaviour {
     public void Initialisation() {
         zoomSpeed = gc.zoomSpeed;
         gc.zoomSpeed = 0;
-		foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances)
-			Winstance.transform.parent = miniUniverse.transform;
-			miniUniverse.transform.localScale = small;
-			
-		//if (miniUniverse != null) {}
+        foreach (WorldInstance Winstance in WorldWrapper.singleton.worldInstances)
+            Winstance.transform.parent = miniUniverse.transform;
+        miniUniverse.transform.localScale = small;
     }
 
     void OnMouseDown() {
@@ -43,7 +41,6 @@ public class Universe : MonoBehaviour {
         ps.Stop();
         gc.zoomSpeed = zoomSpeed * zoomSpeedModifier;
         
-
         for (float elapsed = 0; elapsed < duration; elapsed+=Time.deltaTime) {
             float t = elapsed / duration;
 

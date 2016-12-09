@@ -32,6 +32,14 @@ public struct Chroma {
         }
     }
 
+    public Chroma maximized {
+        get {
+            Chroma a = this;
+            a.Maximize();
+            return a;
+        }
+    }
+
     public void Maximize() {
         if (Mathf.Max(r, g, b) == 1)
             this *= MAX;
@@ -145,6 +153,13 @@ public struct Chroma {
         a.g -= b;
         a.b -= b;
         return a;
+    }
+
+    public static Chroma operator -(int a, Chroma b) {
+        b.r = a - b.r;
+        b.g = a - b.g;
+        b.b = a - b.b;
+        return b;
     }
 
     public static Chroma operator * (Chroma a, int b) {

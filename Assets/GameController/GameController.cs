@@ -72,6 +72,7 @@ public class GameController : MonoBehaviour {
         LeftClickControls();
         ScrollWheelControls();
         RightClickControls();
+        MousePositionZoom();
     }
 
     bool noCursor;
@@ -99,21 +100,20 @@ public class GameController : MonoBehaviour {
         } else {
             noCursor = false;
             cursor.gameObject.SetActive(true);
-            MousePositionZoom();
         }
     }
 
     void MousePositionZoom() {
-        if (Input.mousePosition.x > (Screen.width / 2) - screenCenterMargin && Input.mousePosition.x < (Screen.width / 2) + screenCenterMargin
-            && Input.mousePosition.y > (Screen.height / 2) - screenCenterMargin && Input.mousePosition.y < (Screen.height / 2) + screenCenterMargin) {
+        if (!isDragging && (Input.mousePosition.x > (Screen.width / 2) - screenCenterMargin && Input.mousePosition.x < (Screen.width / 2) + screenCenterMargin
+            && Input.mousePosition.y > (Screen.height / 2) - screenCenterMargin && Input.mousePosition.y < (Screen.height / 2) + screenCenterMargin)) {
             zoomValue += zoomValue >= 1 ? 0 : Time.deltaTime * zoomSpeed;
         } else if (zoomValue > 0) {
             zoomValue -= Time.deltaTime * zoomStopSpeed;
             if (zoomValue < 0) zoomValue = 0;
         }
 
-        if (Input.mousePosition.x < screenBorderMargin || Input.mousePosition.y < screenBorderMargin ||
-            Input.mousePosition.x > Screen.width - screenBorderMargin || Input.mousePosition.y > Screen.height - screenBorderMargin) {
+        if (!isDragging && (Input.mousePosition.x < screenBorderMargin || Input.mousePosition.y < screenBorderMargin ||
+            Input.mousePosition.x > Screen.width - screenBorderMargin || Input.mousePosition.y > Screen.height - screenBorderMargin)) {
             zoomValue -= zoomValue <= -1 ? 0 : Time.deltaTime * zoomSpeed;
         } else if (zoomValue < 0) {
             zoomValue += Time.deltaTime * zoomStopSpeed;

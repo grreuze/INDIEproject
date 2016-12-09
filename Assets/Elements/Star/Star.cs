@@ -80,6 +80,7 @@ public class Star : Element {
             
             if (Mathf.Abs(mouseX) > minAmplitude) {
                 if (previousMove != currentMove) {
+                    // Feedback secouer
                     previousMove = currentMove;
                     shakeRequired--;
                 }
