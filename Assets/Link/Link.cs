@@ -53,6 +53,7 @@ public class Link : MonoBehaviour {
 
     enum MetaPosition { InRange, External, Internal }
     MetaPosition parentMetaPos, targetMetaPos;
+    Existence existence;
     LineRenderer line;
     BoxCollider col;
     bool destroyed, animated;
@@ -75,14 +76,16 @@ public class Link : MonoBehaviour {
 
     Vector3 originPosition {
         get {
-            int worldLoop = parent.isHeld ? WorldWrapper.singleton.currentInstance.loop : worldInstance.loop;
+            bool moving = parent.isHeld || parent.anchored;
+            int worldLoop = moving ? WorldWrapper.singleton.currentInstance.loop : worldInstance.loop;
             return GetMetaPosition(parent.transform.position, ref parentMetaPos, originLoop, worldLoop);
         }
     }
 
     Vector3 targetPosition {
         get {
-            int worldLoop = target.isHeld ? WorldWrapper.singleton.currentInstance.loop : target.worldInstance.loop;
+            bool moving = target.isHeld || target.anchored;
+            int worldLoop = moving ? WorldWrapper.singleton.currentInstance.loop : target.worldInstance.loop;
             return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, worldLoop);
         }
     }

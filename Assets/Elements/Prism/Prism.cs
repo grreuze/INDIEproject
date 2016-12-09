@@ -38,6 +38,7 @@ public class Prism : Element {
     public override void StartHold() {
         if (targetedStar) DetachLink();
         base.StartHold();
+        StartCoroutine("CheckShake");
     }
 
     public override void StopHold() {
@@ -45,6 +46,43 @@ public class Prism : Element {
         if (attachedLink)
             AttachToLink();
         base.StopHold();
+        StopCoroutine("CheckShake");
+    }
+    
+    IEnumerator CheckShake() {
+        bool isShaking = false;
+        int shakeRequired = 6; // Number of mouse x direction change required
+        int delay = 2; // Delay allowed to shake, in seconds
+        float shakeTime = Time.time + delay;
+        bool previousMove = false;
+        bool currentMove = false;
+        float minAmplitude = 0.3f;
+
+        while (isShaking == false && Time.time < shakeTime) {
+
+            float mouseX = Input.GetAxis("Mouse X");
+            currentMove = Mathf.Sign(mouseX) > 0;
+
+            if (Mathf.Abs(mouseX) > minAmplitude) {
+                if (previousMove != currentMove) {
+                    // Feedback secouer
+                    previousMove = currentMove;
+                    shakeRequired--;
+                }
+                if (shakeRequired == 0)
+                    isShaking = true;
+            }
+            yield return new WaitForSeconds(Time.deltaTime);
+        }
+        if (isShaking) {
+            // Change color
+
+        } else ResetCheckShake();
+    }
+
+    void ResetCheckShake() {
+        StopCoroutine("CheckShake");
+        StartCoroutine("CheckShake");
     }
 
     #endregion

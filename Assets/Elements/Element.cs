@@ -41,6 +41,7 @@ public abstract class Element : MonoBehaviour {
         get { return hovered && Input.GetMouseButton(0); }
     }
 
+    public bool anchored;
     #endregion
 
     #region Private Properties
@@ -93,6 +94,8 @@ public abstract class Element : MonoBehaviour {
         CheckHeld();
         CheckLink();
 
+        if (anchored) UpdateLinks();
+        
         if (existence == Existence.unique)
             SetActive(existenceLoop == worldInstance.loop);
         else
@@ -204,6 +207,7 @@ public abstract class Element : MonoBehaviour {
         transform.localScale = Vector3.zero;
         transform.parent = wrapper.worldInstances[newid].transform;
         GetWorldInstance();
+        UpdateLinks();
     }
     
     void ChangeInstance() {
@@ -216,7 +220,6 @@ public abstract class Element : MonoBehaviour {
             SetNewInstance(diff);
             if (existence == Existence.cloned)
                 SetNewCloneInstance(diff);
-            UpdateLinks();
         }
     }
 
@@ -282,7 +285,23 @@ public abstract class Element : MonoBehaviour {
         CircuitManager.CheckCircuit(target);
     }
 
-    void UpdateLinks() {
+    public void AutoLinkTo(Element target) {
+        Link newLink = Instantiate(PrefabManager.link);
+
+        newLink.transform.parent = transform;
+        newLink.transform.position = transform.position;
+        newLink.originLoop = worldInstance.loop;
+        links.Add(newLink);
+
+        newLink.target = target;
+        newLink.targetLoop = target.worldInstance.loop;
+        target.targeted.Add(newLink);
+        newLink.connected = true;
+
+        CircuitManager.CheckCircuit(target);
+    }
+
+    public void UpdateLinks() {
         if (links.Count > 0) UpdateOriginPoints();
         if (targeted.Count > 0) UpdateTargetPoints();
     }

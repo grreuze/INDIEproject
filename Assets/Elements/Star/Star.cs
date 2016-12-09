@@ -6,7 +6,6 @@ public class Star : Element {
     #region Properties
     
     [Header("Star Properties")]
-    public bool anchored;
 
     StarParticles particles;
     [SerializeField]
