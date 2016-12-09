@@ -10,10 +10,11 @@ public class WorldWrapper : MonoBehaviour {
     [Tooltip("The distance between each instance.")]
     public float scaleFactor = 10;
     public float scaleSpeed = 0.05f;
-
-    float minScale, maxScale;
-
     public static WorldWrapper singleton;
+    float minScale, maxScale;
+    Universe universe;
+	public GameObject starCreationParticles;
+
 
     /// <summary>
     /// The ID of the instance the camera is currently in.
@@ -21,9 +22,7 @@ public class WorldWrapper : MonoBehaviour {
     int currentID;
     public WorldInstance currentInstance {
         get {
-
             // to do: get the instance closest to scale 1
-
             return worldInstances[currentID];
         }
     }
@@ -32,6 +31,7 @@ public class WorldWrapper : MonoBehaviour {
         singleton = this;
         maxScale = scaleFactor * scaleFactor;
         minScale = 1 / maxScale;
+        universe = FindObjectOfType<Universe>();
     }
 
     public void Generate() {
@@ -54,6 +54,7 @@ public class WorldWrapper : MonoBehaviour {
         worldInstances[3].name = "WorldInstance [3]";
 
         numberOfInstances = worldInstances.Count;
+        universe.Initialisation();
     }
 
     /// <summary>
@@ -62,7 +63,7 @@ public class WorldWrapper : MonoBehaviour {
     /// <param name="value"> The value of the Zoom to perform </param>
     public void Zoom(float value) {
         for (int i = 0; i < worldInstances.Count; i++) {
-            worldInstances[i].transform.localScale += value * worldInstances[i].transform.localScale * scaleSpeed;
+            worldInstances[i].transform.localScale += value * worldInstances[i].transform.localScale * scaleSpeed; // sometimes infinity
 
             worldInstances[i].name = "WorldInstance [" + i + "]";
 
@@ -84,7 +85,7 @@ public class WorldWrapper : MonoBehaviour {
 
     public void Rotate(Vector3 rotation) {
         for (int i = 0; i < worldInstances.Count; i++) {
-            worldInstances[i].transform.Rotate(rotation, Space.World);
+            worldInstances[i].transform.Rotate(rotation, Space.World); // sometimes infinity
         }
     }
 

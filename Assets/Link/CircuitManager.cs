@@ -51,6 +51,8 @@ public static class CircuitManager {
     /// </summary>
     /// <param name="path"> The path on which the loop is present </param>
     /// <param name="element"> The star that is used as the starting and ending point of the loop </param>
+
+
     static void GenerateLoop(List<Element> path, Element element) {
         int loopStart = path.IndexOf(element);
 
@@ -64,14 +66,23 @@ public static class CircuitManager {
                 newChroma += prism.chroma;
 
             newChroma.ReBalance();
+			Vector3 positionNewStar = AveragePoint (path);
 
-            WorldWrapper.singleton.currentInstance.CreateStar(AveragePoint(path), newChroma);
+			foreach (Element prism in path)
+			{
+				prism.GetComponent<Prism_Movement>().StartCoroutine ("bringPrismTowardsCenterOfPath", positionNewStar);
+			}
 
+
+			MonoBehaviour.Instantiate(WorldWrapper.singleton.starCreationParticles, positionNewStar, Quaternion.identity); //spawn the creation particles
+			
             while(path.Count > 0) {
                 path[0].DestroyAllLinks();
-                MonoBehaviour.Destroy(path[0].gameObject);
+                //MonoBehaviour.Destroy(path[0].gameObject); //Destroy the prisms in the "Prism_Movement" script
                 path.Remove(path[0]);
             }
+
+			WorldWrapper.singleton.currentInstance.CreateStar(positionNewStar, newChroma); //create the new star
 
         } else if (path[0].GetComponent<Star>()) { // Star Loop
             List<Star> loop = new List<Star>();

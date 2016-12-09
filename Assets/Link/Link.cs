@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 [RequireComponent(typeof(BoxCollider))]
 public class Link : MonoBehaviour {
@@ -45,8 +46,11 @@ public class Link : MonoBehaviour {
     /// The length of the link. Distance between originPosition and targetPosition.
     /// </summary>
     public float length {
-        get { return Vector3.Distance(originPosition, targetPosition); }
+        get { return Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x; }
     }
+
+    public List<Prism> prismToOrigin;
+    public List<Prism> prismToTarget;
 
     enum MetaPosition { InRange, External, Internal }
     MetaPosition parentMetaPos, targetMetaPos;
@@ -71,12 +75,20 @@ public class Link : MonoBehaviour {
     }
 
     Vector3 originPosition {
-        get { return GetMetaPosition(transform.position, ref parentMetaPos, originLoop, worldInstance.loop); }
+        get {
+            int worldLoop = parent.isHeld ? WorldWrapper.singleton.currentInstance.loop : worldInstance.loop;
+            return GetMetaPosition(parent.transform.position, ref parentMetaPos, originLoop, worldLoop);
+        }
     }
 
     Vector3 targetPosition {
-        get { return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, target.worldInstance.loop); }
+        get {
+            int worldLoop = target.isHeld ? WorldWrapper.singleton.currentInstance.loop : target.worldInstance.loop;
+            return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, worldLoop);
+        }
     }
+
+    float screenDepth;
 
     #endregion
 
@@ -89,12 +101,14 @@ public class Link : MonoBehaviour {
         col = GetComponent<BoxCollider>();
         SetWidth(width, width);
         transform.localPosition = Vector3.zero;
+        screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
         SetOriginPosition(originPosition);
 
         if (connected) {
+            transform.position = originPosition; // sometimes infinity
 
             if (!animated) {
                 int vertices = (int)(length / segmentLength);
@@ -114,16 +128,11 @@ public class Link : MonoBehaviour {
             }
             
             SetTargetPosition(targetPosition);
-
-            transform.LookAt(targetPosition);
-            col.center = Vector3.forward * (length / 2);
-			col.size = new Vector3(width * colliderSizeMultiplier, width * colliderSizeMultiplier, length);
-            // Collider size seems to be affected by some kind of floating point approximation flaw using Vector3.Distance?
+            SetCollider();
 
             if (adjustWidth) SetWidth(startWidth, endWidth);
 
         } else {
-            float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
             Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
             SetTargetPosition(mouseWorldPos);
         }
@@ -136,14 +145,14 @@ public class Link : MonoBehaviour {
             Mouse.hover = this;
         }
 
-        if (Mouse.breakLinkMode && !destroyed) {
+        if (Mouse.breakLinkMode && !destroyed && isVisible) {
             destroyed = true;
             ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
             ps.transform.localEulerAngles = 90 * Vector3.up;
             ps.transform.localPosition = Vector3.forward * (length / 2);
-
+            
             ParticleSystem.EmissionModule emission = ps.emission;
-            emission.rate = 70 * length;
+            emission.rateOverTime = 70 * length;
 
             ParticleSystem.ShapeModule shape = ps.shape;
             shape.radius = length / 2;
@@ -161,6 +170,12 @@ public class Link : MonoBehaviour {
     }
 
     #endregion
+
+    void SetCollider() {
+        transform.LookAt(targetPosition); // sometimes infinity
+        col.center = Vector3.forward * (length / 2); // sometimes infinity
+		col.size = new Vector3(width * colliderSizeMultiplier, width * colliderSizeMultiplier, length);
+    }
 
     void SetOriginPosition(Vector3 pos) {
         line.SetPosition(0, pos);
@@ -192,7 +207,7 @@ public class Link : MonoBehaviour {
     Vector3 GetMetaPosition(Vector3 point, ref MetaPosition pos, int loop, int worldLoop) {
         if (worldLoop > loop) {
             pos = MetaPosition.External;
-            return point.normalized * 1000;
+            return point.normalized * 1000; // Float approximation, not the best method
         } else if (worldLoop < loop) {
             pos = MetaPosition.Internal;
             return Vector3.zero;

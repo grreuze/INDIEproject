@@ -9,8 +9,8 @@ public class Star : Element {
     public bool anchored;
 
     StarParticles particles;
-	public GameObject destroyParticles;
-    public float shakeTime; //Out of the coroutine so it can be accessed by other classes
+    [SerializeField]
+    GameObject destroyParticles;
 
     #endregion
 
@@ -32,8 +32,6 @@ public class Star : Element {
     
     void BreakStar() {
         StopHold();
-        WorldWrapper wrapper = WorldWrapper.singleton;
-
         DestroyAllLinks();
 
         if (existence == Existence.cloned)
@@ -44,40 +42,33 @@ public class Star : Element {
         }
 
         substractedFrom.Add(worldInstance.loop);
+        CreatePrisms();
+    }
 
-        if (chroma.isPure) chroma *= Chroma.MAX; //If only one color, give 3 prisms instead of one
+    void CreatePrisms() {
+        if (chroma.isPrimary) chroma *= Chroma.MAX; //If only one color, give 3 prisms instead of one
 
-        for (int i = 0; i < chroma.r; i++) {
-            Prism redPrism = (Prism)Instantiate(PrefabManager.prism,
-                transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1)),
-                Quaternion.identity);
-            redPrism.transform.parent = wrapper.currentInstance.transform;
-            redPrism.chroma = Chroma.red;
-            redPrism.transform.LookAt(transform);
-        }
-        for (int i = 0; i < chroma.g; i++) {
-            Prism greenPrism = (Prism)Instantiate(PrefabManager.prism,
-                transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1)),
-                Quaternion.identity);
-            greenPrism.transform.parent = wrapper.currentInstance.transform;
-            greenPrism.chroma = Chroma.green;
-            greenPrism.transform.LookAt(transform);
-        }
-        for (int i = 0; i < chroma.b; i++) {
-            Prism bluePrism = (Prism)Instantiate(PrefabManager.prism,
-                transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1)),
-                Quaternion.identity);
-            bluePrism.transform.parent = wrapper.currentInstance.transform;
-            bluePrism.chroma = Chroma.blue;
-            bluePrism.transform.LookAt(transform);
-        }
+        for (int i = 0; i < chroma.r; i++)
+            CreatePrism(Chroma.red);
+        for (int i = 0; i < chroma.g; i++)
+            CreatePrism(Chroma.green);
+        for (int i = 0; i < chroma.b; i++)
+            CreatePrism(Chroma.blue);
+    }
+
+    void CreatePrism(Chroma value) {
+        Vector3 randomPosition = transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1));
+        Prism prism = (Prism)Instantiate(PrefabManager.prism, randomPosition, Quaternion.identity);
+        prism.transform.parent = WorldWrapper.singleton.currentInstance.transform;
+        prism.chroma = value;
+        prism.transform.LookAt(transform);
     }
 
     IEnumerator CheckShake() {
         bool isShaking = false;
         int shakeRequired = 6; // Number of mouse x direction change required
         int delay = 2; // Delay allowed to shake, in seconds
-        shakeTime = Time.time + delay;
+        float shakeTime = Time.time + delay;
         bool previousMove = false;
         bool currentMove = false;
         float minAmplitude = 0.3f;
@@ -98,8 +89,8 @@ public class Star : Element {
             yield return new WaitForSeconds(Time.deltaTime);
         }
         if (isShaking) {
-			Instantiate (destroyParticles, transform.position, Quaternion.identity); //spawn the breaking particles
-			BreakStar();
+            Instantiate(destroyParticles, transform.position, Quaternion.identity); //spawn the breaking particles
+            BreakStar();
         } else ResetCheckShake();
     }
 
