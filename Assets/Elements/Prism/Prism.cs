@@ -25,7 +25,7 @@ public class Prism : Element {
 
     void LateUpdate() {
         if (attachedLink) {
-            transform.position = Vector3.Lerp(attachedLink.parent.transform.position, attachedLink.target.transform.position, position);
+            transform.position = Vector3.Lerp(attachedLink.origin.transform.position, attachedLink.target.transform.position, position);
             if (targetedStar)
                 transform.LookAt(targetedStar.transform);
         }
@@ -74,10 +74,20 @@ public class Prism : Element {
             }
             yield return new WaitForSeconds(Time.deltaTime);
         }
-        if (isShaking) {
-            // Change color
 
-        } else ResetCheckShake();
+        if (isShaking)
+            SetNextChroma();
+        ResetCheckShake();
+    }
+
+    void SetNextChroma() {
+        if (chroma == Chroma.red)
+            chroma = Chroma.green;
+        else if (chroma == Chroma.green)
+            chroma = Chroma.blue;
+        else if (chroma == Chroma.blue)
+            chroma = Chroma.red;
+        ApplyChroma();
     }
 
     void ResetCheckShake() {
@@ -133,17 +143,17 @@ public class Prism : Element {
         if (Physics.Raycast(ray, out hit))
             transform.position = hit.point;
 
-        position = Vector3.Distance(transform.position, attachedLink.parent.transform.position) / attachedLink.length;
+        position = Vector3.Distance(transform.position, attachedLink.origin.transform.position) / attachedLink.length;
         
         bool isFirstPrism = false;
         if (position < 0.5f) {
-            targetedStar = (Star)attachedLink.parent;
+            targetedStar = (Star)attachedLink.origin;
             oppositeStar = (Star)attachedLink.target;
             attachedLink.prismToOrigin.Add(this);
             isFirstPrism = attachedLink.prismToOrigin[0] == this;
         } else {
             targetedStar = (Star)attachedLink.target;
-            oppositeStar = (Star)attachedLink.parent;
+            oppositeStar = (Star)attachedLink.origin;
             attachedLink.prismToTarget.Add(this);
             isFirstPrism = attachedLink.prismToTarget[0] == this;
         }

@@ -60,7 +60,11 @@ public abstract class Element : MonoBehaviour {
     Renderer rend;
 
     Star[] clones;
-
+    
+    float vertexOffset {
+        get { return rend.material.GetFloat("_VertexOffset"); }
+        set { rend.material.SetFloat("_VertexOffset", value); }
+    }
     Color outlineColor {
         get {
             return rend.material.GetColor("_Outline_Color");
@@ -94,7 +98,11 @@ public abstract class Element : MonoBehaviour {
         CheckHeld();
         CheckLink();
 
-        if (anchored) UpdateLinks();
+        if (anchored) {
+            UpdateLinks();
+            if (links.Count > 0 || targeted.Count > 0)
+                print(worldInstance.loop);
+        }
         
         if (existence == Existence.unique)
             SetActive(existenceLoop == worldInstance.loop);
@@ -131,9 +139,11 @@ public abstract class Element : MonoBehaviour {
 
         foreach (Link link in links) {// Links I am the origin of
             if (link.prismToTarget.Count > 0) link.prismToTarget[0].UpdateTargetColor();
+            link.SetStartColor();
         }
         foreach (Link link in targeted) {// Links I am the target of
             if (link.prismToOrigin.Count > 0) link.prismToOrigin[0].UpdateTargetColor();
+            link.SetEndColor();
         }
         
         if (existence == Existence.cloned) RecolorClones();
@@ -261,7 +271,7 @@ public abstract class Element : MonoBehaviour {
         foreach (Link link in links)
             if (link.target == element) return true;
         foreach (Link link in targeted)
-            if (link.parent == element) return true;
+            if (link.origin == element) return true;
         return false;
     }
 
@@ -280,7 +290,7 @@ public abstract class Element : MonoBehaviour {
         newLink.targetLoop = target.worldInstance.loop;
         newLink.connected = true;
         target.targeted.Add(newLink);
-        newLink.parent.links.Add(newLink);
+        newLink.origin.links.Add(newLink);
         Mouse.link = null;
         CircuitManager.CheckCircuit(target);
     }

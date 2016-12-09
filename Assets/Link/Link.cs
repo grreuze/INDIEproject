@@ -20,15 +20,16 @@ public class Link : MonoBehaviour {
     Material hoverMat;
 
     [Header("Link Properties")]
-    public Element parent;
+    public Element origin;
     public Element target;
-    public int targetLoop;
     public int originLoop;
+    public int targetLoop;
+    public List<Prism> prismToOrigin;
+    public List<Prism> prismToTarget;
     public bool connected;
-    
     [SerializeField]
     bool adjustWidth;
-
+    
     [Header("Animation"), SerializeField]
     float waveHeight = 1.5f;
     [SerializeField]
@@ -38,7 +39,7 @@ public class Link : MonoBehaviour {
     /// Returns whether or not the Link is currently visible by the player.
     /// </summary>
     public bool isVisible {
-        get { return (parentMetaPos != targetMetaPos) || (parentMetaPos == targetMetaPos && targetMetaPos == MetaPosition.InRange); }
+        get { return (originMetaPos != targetMetaPos) || (originMetaPos == targetMetaPos && targetMetaPos == MetaPosition.InRange); }
     }
 
     /// <summary>
@@ -48,11 +49,8 @@ public class Link : MonoBehaviour {
         get { return Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x; }
     }
 
-    public List<Prism> prismToOrigin;
-    public List<Prism> prismToTarget;
-
     enum MetaPosition { InRange, External, Internal }
-    MetaPosition parentMetaPos, targetMetaPos;
+    MetaPosition originMetaPos, targetMetaPos;
     Existence existence;
     LineRenderer line;
     BoxCollider col;
@@ -60,7 +58,7 @@ public class Link : MonoBehaviour {
 
     float startWidth {
         get {
-            return parentMetaPos == MetaPosition.Internal ? 0 : parent.transform.lossyScale.x * width * transform.localScale.x;
+            return originMetaPos == MetaPosition.Internal ? 0 : origin.transform.lossyScale.x * width * transform.localScale.x;
         }
     }
 
@@ -71,14 +69,14 @@ public class Link : MonoBehaviour {
     }
 
     WorldInstance worldInstance {
-        get { return parent.worldInstance; }
+        get { return origin.worldInstance; }
     }
 
     Vector3 originPosition {
         get {
-            bool moving = parent.isHeld || parent.anchored;
+            bool moving = origin.isHeld || origin.anchored;
             int worldLoop = moving ? WorldWrapper.singleton.currentInstance.loop : worldInstance.loop;
-            return GetMetaPosition(parent.transform.position, ref parentMetaPos, originLoop, worldLoop);
+            return GetMetaPosition(origin.transform.position, ref originMetaPos, originLoop, worldLoop);
         }
     }
 
@@ -99,20 +97,22 @@ public class Link : MonoBehaviour {
     void Start() {
         line = GetComponent<LineRenderer>();
         line.sharedMaterial = mat;
-        parent = transform.parent.GetComponent<Element>();
+        origin = transform.parent.GetComponent<Element>();
         col = GetComponent<BoxCollider>();
         SetWidth(width, width);
+        SetStartColor();
         transform.localPosition = Vector3.zero;
         screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
-        SetOriginPosition(originPosition);
+        SetStartPostion(originPosition);
 
         if (connected) {
             transform.position = originPosition; // sometimes infinity
 
             if (!animated) {
+                SetEndColor();
                 int vertices = (int)(length / segmentLength);
                 line.numPositions = vertices;
 
@@ -129,19 +129,19 @@ public class Link : MonoBehaviour {
                 }
             }
             
-            SetTargetPosition(targetPosition);
+            SetEndPosition(targetPosition);
             SetCollider();
 
             if (adjustWidth) SetWidth(startWidth, endWidth);
 
         } else {
             Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
-            SetTargetPosition(mouseWorldPos);
+            SetEndPosition(mouseWorldPos);
         }
     }
 
     void OnMouseEnter() {
-        if (Mouse.holding && Mouse.holding != target && Mouse.holding != parent &&
+        if (Mouse.holding && Mouse.holding != target && Mouse.holding != origin &&
             Mouse.holding.GetComponent<Prism>()) {
             line.sharedMaterial = hoverMat;
             Mouse.hover = this;
@@ -160,17 +160,19 @@ public class Link : MonoBehaviour {
 
     #endregion
 
+    #region Properties Setter Functions
+
     void SetCollider() {
         transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
         col.size = new Vector3(width, width, length);
     }
 
-    void SetOriginPosition(Vector3 pos) {
+    void SetStartPostion(Vector3 pos) {
         line.SetPosition(0, pos);
     }
 
-    void SetTargetPosition(Vector3 pos) {
+    void SetEndPosition(Vector3 pos) {
         line.SetPosition(line.numPositions - 1, pos);
     }
 
@@ -179,9 +181,7 @@ public class Link : MonoBehaviour {
         line.endWidth = end;
     }
 
-    public void BreakLink() {
-        destroyed = true;
-        ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
+    void SetParticleSystem(ParticleSystem ps) {
         ps.transform.localEulerAngles = 90 * Vector3.up;
         ps.transform.localPosition = Vector3.forward * (length / 2);
 
@@ -191,13 +191,36 @@ public class Link : MonoBehaviour {
         ParticleSystem.ShapeModule shape = ps.shape;
         shape.radius = length / 2;
 
+        ParticleSystem.MainModule main = ps.main;
+        main.simulationSpace = ParticleSystemSimulationSpace.Custom;
+        main.customSimulationSpace = origin.worldInstance.transform;
+    }
+
+    public void SetStartColor() {
+        line.startColor = origin.chroma.color;
+    }
+
+    public void SetEndColor() {
+        line.endColor = target.chroma.color;
+    }
+
+    #endregion
+
+    #region Destroy Functions
+
+    public void BreakLink() {
+        destroyed = true;
+
+        ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
+        SetParticleSystem(ps);
         ps.Play();
+
         line.enabled = false;
         foreach (Prism prism in prismToOrigin)
             prism.attachedLink = null;
         foreach (Prism prism in prismToTarget)
             prism.attachedLink = null;
-        parent.links.Remove(this);
+        origin.links.Remove(this);
         target.targeted.Remove(this);
         Invoke("DestroyLink", ps.main.startLifetime.constant);
     }
@@ -206,6 +229,8 @@ public class Link : MonoBehaviour {
         // We should also remove the loops containing this link
         Destroy(gameObject); // We should probably do object pooling for links
     }
+
+    #endregion
 
     /// <summary>
     /// Returns the position of a point given the loop it is in and the current world loop.

@@ -25,7 +25,7 @@ public static class CircuitManager {
         }
         if (element.targeted.Count > 0) {
             foreach (Link link in element.targeted) {
-                CheckIfPathContains(currentPath, link.parent);
+                CheckIfPathContains(currentPath, link.origin);
                 if (prismLoop) return;
             }
         }
