@@ -36,7 +36,7 @@ public class WorldWrapper : MonoBehaviour {
         ogWorldInstance.GetComponent<WorldInstance>().enabled = false; //Prevent other instances to re-instantiate stars
 
         worldInstances.Add(Instantiate(ogWorldInstance));
-        worldInstances[0].transform.localScale = ogWorldInstance.transform.localScale / (scaleFactor * scaleFactor);
+        worldInstances[0].transform.localScale = ogWorldInstance.transform.localScale / (maxScale);
         worldInstances[0].name = "WorldInstance [0]";
 
         worldInstances.Add(Instantiate(ogWorldInstance));
@@ -70,15 +70,31 @@ public class WorldWrapper : MonoBehaviour {
                 worldInstances[i].loop++;
                 worldInstances.Insert(0, worldInstances[i]);
                 worldInstances.RemoveAt(i + 1);
+                ResetSizesFromSmallest();
 
             } else if (worldInstances[i].transform.localScale.x < minScale) {
                 worldInstances[i].transform.localScale = Vector3.one * maxScale;
                 worldInstances[i].loop--;
                 worldInstances.Insert(worldInstances.Count, worldInstances[i]);
                 worldInstances.RemoveAt(i);
+                ResetSizesFromBiggest();
 
             }
         }
+    }
+
+    void ResetSizesFromSmallest() {
+        //worldInstances[0].transform.localScale = Vector3.one * minScale;
+        worldInstances[1].transform.localScale = Vector3.one / scaleFactor;
+        worldInstances[2].transform.localScale = Vector3.one;
+        worldInstances[3].transform.localScale = Vector3.one * scaleFactor;
+    }
+
+    void ResetSizesFromBiggest() {
+        worldInstances[0].transform.localScale = Vector3.one / scaleFactor;
+        worldInstances[1].transform.localScale = Vector3.one;
+        worldInstances[2].transform.localScale = Vector3.one * scaleFactor;
+        //worldInstances[3].transform.localScale = Vector3.one * maxScale;
     }
 
     public void Rotate(Vector3 rotation) {

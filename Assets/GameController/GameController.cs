@@ -126,8 +126,8 @@ public class GameController : MonoBehaviour {
     /// Controls using the mouse scroll wheel and mouse middle click. Used to Zoom.
     /// </summary>
     void ScrollWheelControls() {
-        //if (Input.GetMouseButton(2) && Input.GetAxis("Mouse Y") != 0)
-        //    wrapper.Zoom(Input.GetAxis("Mouse Y"));
+        if (Input.GetMouseButton(2) && Input.GetAxis("Mouse Y") != 0)
+            wrapper.Zoom(Input.GetAxis("Mouse Y"));
 
         if (Input.GetAxis("Mouse ScrollWheel") != 0)
             wrapper.Zoom(Input.GetAxis("Mouse ScrollWheel") * scrollSpeed);
