@@ -1,37 +1,54 @@
 ﻿using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 
-public static class CircuitManager {
+public class CircuitManager : MonoBehaviour {
 
-    static bool prismLoop;
+    public static CircuitManager instance;
+    bool prismLoop;
 
-    public static void CheckCircuit(Element element) {
+    public void CheckCircuit(Element element) {
         prismLoop = false;
         List<Element> path = new List<Element>();
         CheckElement(element, path);
     }
 
+    public void SendSignal(Element element) {
+        List<Element> path = new List<Element>();
+        CheckElement(element, path);
+    }
+
+    void Awake() {
+        instance = this;
+    }
+
     #region Recursive Methods
 
-    static void CheckElement(Element element, List<Element> currentPath) {
-        
+    IEnumerator _CheckElement(Element element, List<Element> currentPath) {
+
         currentPath.Add(element);
 
         if (element.links.Count > 0) {
             foreach (Link link in element.links) {
                 CheckIfPathContains(currentPath, link.target);
-                if (prismLoop) return;
+                if (prismLoop) yield break;
+                yield return new WaitForEndOfFrame(); // Wait a frame before we check the element
             }
         }
         if (element.targeted.Count > 0) {
             foreach (Link link in element.targeted) {
                 CheckIfPathContains(currentPath, link.origin);
-                if (prismLoop) return;
+                if (prismLoop) yield break;
+                yield return new WaitForEndOfFrame(); // Wait a frame before we check the element
             }
         }
     }
 
-    static void CheckIfPathContains(List<Element> path, Element element) {
+    void CheckElement(Element element, List<Element> currentPath) {
+        StartCoroutine(_CheckElement(element, currentPath));
+    }
+
+    void CheckIfPathContains(List<Element> path, Element element) {
         
         if (path.Contains(element)) {
             if (path.IndexOf(element) == path.Count - 2)
@@ -51,9 +68,7 @@ public static class CircuitManager {
     /// </summary>
     /// <param name="path"> The path on which the loop is present </param>
     /// <param name="element"> The star that is used as the starting and ending point of the loop </param>
-
-
-    static void GenerateLoop(List<Element> path, Element element) {
+    void GenerateLoop(List<Element> path, Element element) {
         int loopStart = path.IndexOf(element);
 
         if (path[0].GetComponent<Prism>()) { // Prism Loop
@@ -72,9 +87,8 @@ public static class CircuitManager {
 			{
 				prism.GetComponent<Prism_Movement>().StartCoroutine ("bringPrismTowardsCenterOfPath", positionNewStar);
 			}
-
-
-			MonoBehaviour.Instantiate(WorldWrapper.singleton.starCreationParticles, positionNewStar, Quaternion.identity); //spawn the creation particles
+            
+			Instantiate(PrefabManager.starCreationParticles, positionNewStar, Quaternion.identity); //spawn the creation particles
 			
             while(path.Count > 0) {
                 path[0].DestroyAllLinks();
@@ -102,7 +116,7 @@ public static class CircuitManager {
     /// </summary>
     /// <param name="points"> All the points to average. </param>
     /// <returns></returns>
-    static Vector3 AveragePoint(List<Element> points) {
+    Vector3 AveragePoint(List<Element> points) {
         Vector3 sum = points[0].transform.position;
 
         for (int i = 1; i < points.Count; i++)
@@ -111,7 +125,7 @@ public static class CircuitManager {
         return sum / points.Count;
     }
 
-    static int CompareStars(Star a, Star b) {
+    int CompareStars(Star a, Star b) {
         if (a == null) {
             if (b == null) return 0;
             else return -1;

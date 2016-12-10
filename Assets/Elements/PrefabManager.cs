@@ -2,6 +2,7 @@
 
 public class PrefabManager : MonoBehaviour {
 
+    [Header("Main Prefabs")]
     [SerializeField]
     Star _star;
     [SerializeField]
@@ -13,9 +14,17 @@ public class PrefabManager : MonoBehaviour {
     public static Prism prism;
     public static Link link;
 
+    [Header("Particle Systems")]
+    [SerializeField]
+    GameObject _starCreationParticles;
+
+    public static GameObject starCreationParticles;
+
     void Awake() {
         star = _star;
         prism = _prism;
         link = _link;
+
+        starCreationParticles = _starCreationParticles;
     }
 }

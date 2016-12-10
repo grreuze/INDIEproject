@@ -10,6 +10,9 @@ public class Star : Element {
     StarParticles particles;
     [SerializeField]
     GameObject destroyParticles;
+    float lastClick;
+    float doubleClickTime = 0.5f;
+
 
     #endregion
 
@@ -27,6 +30,11 @@ public class Star : Element {
         particles.Stop();
         base.StopHold();
         StopCoroutine("CheckShake");
+        if (Time.time - lastClick < doubleClickTime) {
+            print("double click on a star");
+            VertexPing();
+        }
+        lastClick = Time.time;
     }
     
     void BreakStar() {

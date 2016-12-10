@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using System.Collections;
 
 public abstract class Element : MonoBehaviour {
 
@@ -42,6 +43,11 @@ public abstract class Element : MonoBehaviour {
     }
 
     public bool anchored;
+    
+    public float vertexOffset {
+        get { return rend.material.GetFloat("_VertexOffset"); }
+        set { rend.material.SetFloat("_VertexOffset", value); }
+    }
     #endregion
 
     #region Private Properties
@@ -61,10 +67,6 @@ public abstract class Element : MonoBehaviour {
 
     Star[] clones;
     
-    float vertexOffset {
-        get { return rend.material.GetFloat("_VertexOffset"); }
-        set { rend.material.SetFloat("_VertexOffset", value); }
-    }
     Color outlineColor {
         get {
             return rend.material.GetColor("_Outline_Color");
@@ -94,8 +96,8 @@ public abstract class Element : MonoBehaviour {
     }
 
     void Update() {
-        Rescale(); // We should only rescale if zooming / dezooming / anchored
         CheckHeld();
+        if (!isHeld) Rescale(); // We should only rescale if zooming / dezooming / anchored
         CheckLink();
 
         if (anchored) {
@@ -153,6 +155,22 @@ public abstract class Element : MonoBehaviour {
         chroma.ReBalance();
         rend.sharedMaterial = mat;
         outlineColor = chroma.color == Color.white ? outlineColorWhenChromaIsWhite : chroma.color;
+    }
+
+    public void VertexPing() {
+        StartCoroutine(_VertexPing());
+    }
+    
+    IEnumerator _VertexPing() {
+        float duration = 0.2f;
+        float max = 1;
+        
+        for (float elapsed = 0; elapsed < duration; elapsed += Time.deltaTime) {
+            float t = elapsed / duration;
+            vertexOffset = Mathf.Lerp(max, 0, t);
+            yield return null;
+        }
+        vertexOffset = 0;
     }
 
     #endregion
@@ -292,7 +310,7 @@ public abstract class Element : MonoBehaviour {
         target.targeted.Add(newLink);
         newLink.origin.links.Add(newLink);
         Mouse.link = null;
-        CircuitManager.CheckCircuit(target);
+        CircuitManager.instance.CheckCircuit(target);
     }
 
     public void AutoLinkTo(Element target) {
@@ -308,7 +326,7 @@ public abstract class Element : MonoBehaviour {
         target.targeted.Add(newLink);
         newLink.connected = true;
 
-        CircuitManager.CheckCircuit(target);
+        CircuitManager.instance.CheckCircuit(target);
     }
 
     public void UpdateLinks() {
@@ -355,7 +373,7 @@ public abstract class Element : MonoBehaviour {
         FixPosition();
     }
 
-    void FixPosition() { //Not sure if necessary anymore
+    void FixPosition() { // Ugly fix
         if (Mathf.Abs(transform.localPosition.x) > 1000)
             transform.localPosition /= 10000;
         if (Mathf.Abs(transform.localPosition.x) < 0.001)

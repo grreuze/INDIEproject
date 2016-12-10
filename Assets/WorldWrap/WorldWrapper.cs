@@ -14,8 +14,6 @@ public class WorldWrapper : MonoBehaviour {
     float minScale, maxScale;
     Universe universe;
 
-	public GameObject starCreationParticles;
-
     /// <summary>
     /// The ID of the instance the camera is currently in.
     /// </summary>

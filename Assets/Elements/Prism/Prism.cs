@@ -74,9 +74,10 @@ public class Prism : Element {
             }
             yield return new WaitForSeconds(Time.deltaTime);
         }
-
-        if (isShaking)
+        if (isShaking) {
             SetNextChroma();
+            VertexPing();     
+        }
         ResetCheckShake();
     }
 
@@ -96,6 +97,8 @@ public class Prism : Element {
     }
 
     #endregion
+
+    #region Color Methods
 
     public void UpdateTargetColor() {
         if (formerChroma != oppositeStar.chroma) {
@@ -134,6 +137,8 @@ public class Prism : Element {
         formerChroma = oppositeStar.chroma;
         formerChroma.ReBalance();
     }
+
+    #endregion
 
     #region Link Methods
 
