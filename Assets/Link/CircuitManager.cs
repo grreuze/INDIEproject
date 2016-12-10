@@ -5,17 +5,21 @@ using System.Collections.Generic;
 public class CircuitManager : MonoBehaviour {
 
     public static CircuitManager instance;
-    bool prismLoop;
+    bool prismLoop, signal;
+    List<Element> uniquePath;
 
     public void CheckCircuit(Element element) {
-        prismLoop = false;
+        signal = prismLoop = false;
         List<Element> path = new List<Element>();
         CheckElement(element, path);
     }
 
     public void SendSignal(Element element) {
-        List<Element> path = new List<Element>();
-        CheckElement(element, path);
+        prismLoop = false;
+        signal = true;
+        uniquePath = new List<Element>();
+        CheckElement(element, uniquePath);
+        StartCoroutine(_EmptySignal(element));
     }
 
     void Awake() {
@@ -23,6 +27,27 @@ public class CircuitManager : MonoBehaviour {
     }
 
     #region Recursive Methods
+    
+    IEnumerator _SendSignalToElement(Element element) {
+
+        yield return new WaitForSeconds(0.2f);
+        uniquePath.Add(element);
+        
+        if (element.links.Count > 0) {
+            foreach (Link link in element.links) {
+                CheckIfPathContains(uniquePath, link.target);
+                if (prismLoop) yield break;
+                yield return new WaitForEndOfFrame();
+            }
+        }
+        if (element.targeted.Count > 0) {
+            foreach (Link link in element.targeted) {
+                CheckIfPathContains(uniquePath, link.origin);
+                if (prismLoop) yield break;
+                yield return new WaitForEndOfFrame();
+            }
+        }
+    }
 
     IEnumerator _CheckElement(Element element, List<Element> currentPath) {
 
@@ -32,25 +57,35 @@ public class CircuitManager : MonoBehaviour {
             foreach (Link link in element.links) {
                 CheckIfPathContains(currentPath, link.target);
                 if (prismLoop) yield break;
-                yield return new WaitForEndOfFrame(); // Wait a frame before we check the element
+                yield return new WaitForEndOfFrame();
             }
         }
         if (element.targeted.Count > 0) {
             foreach (Link link in element.targeted) {
                 CheckIfPathContains(currentPath, link.origin);
                 if (prismLoop) yield break;
-                yield return new WaitForEndOfFrame(); // Wait a frame before we check the element
+                yield return new WaitForEndOfFrame();
             }
         }
     }
 
+    IEnumerator _EmptySignal(Element element) {
+        yield return new WaitForSeconds(0.1999f);
+        if (uniquePath.Contains(element)) yield break;
+        element.VertexPing();
+    }
+
     void CheckElement(Element element, List<Element> currentPath) {
-        StartCoroutine(_CheckElement(element, currentPath));
+        if (signal)
+            StartCoroutine(_SendSignalToElement(element));
+        else
+            StartCoroutine(_CheckElement(element, currentPath));
     }
 
     void CheckIfPathContains(List<Element> path, Element element) {
         
         if (path.Contains(element)) {
+            if (signal) return;
             if (path.IndexOf(element) == path.Count - 2)
                 return; //this is the star we come from, abort
             else 
@@ -59,6 +94,7 @@ public class CircuitManager : MonoBehaviour {
             List<Element> newPath = new List<Element>(path);
             CheckElement(element, newPath);
         }
+        if (signal) StartCoroutine(_EmptySignal(element));
     }
 
     #endregion
@@ -83,18 +119,13 @@ public class CircuitManager : MonoBehaviour {
             newChroma.ReBalance();
 			Vector3 positionNewStar = AveragePoint (path);
 
-			foreach (Element prism in path)
-			{
+			foreach (Element prism in path) {
 				prism.GetComponent<Prism_Movement>().StartCoroutine ("bringPrismTowardsCenterOfPath", positionNewStar);
 			}
             
 			Instantiate(PrefabManager.starCreationParticles, positionNewStar, Quaternion.identity); //spawn the creation particles
 			
-            while(path.Count > 0) {
-                path[0].DestroyAllLinks();
-                //MonoBehaviour.Destroy(path[0].gameObject); //Destroy the prisms in the "Prism_Movement" script
-                path.Remove(path[0]);
-            }
+            while(path.Count > 0) path.Remove(path[0]);
 
 			WorldWrapper.singleton.currentInstance.CreateStar(positionNewStar, newChroma); //create the new star
 

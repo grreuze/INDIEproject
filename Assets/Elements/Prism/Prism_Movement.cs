@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Prism_Movement : MonoBehaviour {
@@ -20,7 +19,7 @@ public class Prism_Movement : MonoBehaviour {
 
 			yield return null;
 		}
-			
+        GetComponent<Prism>().DestroyAllLinks();	
 		Destroy (this.gameObject);
 	}
 }

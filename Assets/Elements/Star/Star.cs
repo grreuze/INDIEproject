@@ -31,8 +31,7 @@ public class Star : Element {
         base.StopHold();
         StopCoroutine("CheckShake");
         if (Time.time - lastClick < doubleClickTime) {
-            print("double click on a star");
-            VertexPing();
+            CircuitManager.instance.SendSignal(this);
         }
         lastClick = Time.time;
     }
