@@ -32,6 +32,7 @@ public class Star : Element {
         StopCoroutine("CheckShake");
         if (Time.time - lastClick < doubleClickTime) {
             CircuitManager.instance.SendSignal(this);
+            //PlayMySound();
         }
         lastClick = Time.time;
     }

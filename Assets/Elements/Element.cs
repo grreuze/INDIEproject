@@ -56,6 +56,7 @@ public abstract class Element : MonoBehaviour {
 
     static WorldWrapper wrapper;
     Transform worldTransform;
+    AudioSource MySound;
 
     /// <summary>
     /// If the element is unique, the loop in which it exists.
@@ -83,8 +84,9 @@ public abstract class Element : MonoBehaviour {
     void Start() {
         col = GetComponent<Collider>();
         rend = GetComponent<Renderer>();
+        MySound = GetComponent<AudioSource>();
         rend.sharedMaterial = mat;
-
+        MySound.volume = .7f;
         outlineColor = chroma.color == Color.white ? outlineColorWhenChromaIsWhite : chroma.color;
         
         if (!wrapper) wrapper = WorldWrapper.singleton;
@@ -159,6 +161,7 @@ public abstract class Element : MonoBehaviour {
 
     public void VertexPing() {
         StartCoroutine(_VertexPing());
+        PlayMySound();
     }
     
     IEnumerator _VertexPing() {
@@ -439,7 +442,33 @@ public abstract class Element : MonoBehaviour {
     }
 
     #endregion
-    
+
+    #region Scale Methods
+
+    public void PlayMySound()
+    {
+        MySound.volume = transform.localScale.x * (.6f / scale.max);
+        if(chroma.r == chroma.b && chroma.b == chroma.g)
+        {
+            MySound.pitch = 1;
+        }
+        else if (chroma.b > chroma.r && chroma.b > chroma.g)
+        {
+            MySound.pitch = 1 - ((0.8f / 3) * chroma.b);
+        }
+        else if (chroma.r > chroma.b && chroma.r > chroma.g)
+        {
+            MySound.pitch = 1 + ((0.5f / 3) * chroma.r);
+        }
+        else if (chroma.g > chroma.b && chroma.g > chroma.r)
+        {
+            MySound.pitch = 1.5f + ((1.5f / 3) * chroma.g);
+        }
+        MySound.Play();
+    }
+
+    #endregion
+
 }
 
 public enum Existence {
