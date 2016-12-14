@@ -103,10 +103,15 @@ public class Link : MonoBehaviour {
         SetStartColor();
         transform.localPosition = Vector3.zero;
         screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
+        gameObject.layer = 2;
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
         SetStartPostion(originPosition);
+
+
+
+        gameObject.layer = Mouse.breakLinkMode || Mouse.isHoldingPrism ? 0 : 2;
 
         if (connected) {
             transform.position = originPosition; // sometimes infinity
