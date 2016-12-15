@@ -279,7 +279,7 @@ public abstract class Element : MonoBehaviour {
             }
             if (Input.GetMouseButtonUp(1)) {
                 if (Mouse.linking && Mouse.linking.GetType() == GetType() && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
-                    ConnectLink(this);
+                    Mouse.link.Connect(this);
                     Mouse.linking = null;
                 } else {
                     Mouse.BreakLink();
@@ -303,17 +303,6 @@ public abstract class Element : MonoBehaviour {
         Mouse.link.transform.position = transform.position;
         Mouse.link.originLoop = worldInstance.loop;
         Mouse.link.connected = false;
-    }
-
-    void ConnectLink(Element target) {
-        Link newLink = Mouse.link;
-        newLink.target = target;
-        newLink.targetLoop = target.worldInstance.loop;
-        newLink.connected = true;
-        target.targeted.Add(newLink);
-        newLink.origin.links.Add(newLink);
-        Mouse.link = null;
-        CircuitManager.instance.CheckCircuit(target);
     }
 
     public void AutoLinkTo(Element target) {
@@ -443,10 +432,9 @@ public abstract class Element : MonoBehaviour {
 
     #endregion
 
-    #region Scale Methods
+    #region Sound Methods
 
-    public void PlayMySound()
-    {
+    public void PlayMySound() {
         MySound.volume = transform.localScale.x * (.6f / scale.max);
         if(chroma.r == chroma.b && chroma.b == chroma.g)
         {
