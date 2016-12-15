@@ -125,6 +125,7 @@ public abstract class Element : MonoBehaviour {
         }
     }
 
+
     void OnMouseExit() {
         if (!isHeld) StopHover();
     }
@@ -449,21 +450,34 @@ public abstract class Element : MonoBehaviour {
     public void PlayMySound()
     {
         float volume = .5f;
+        int gamme = 3; // can't be < 3 or > 8   Higher = High frequency
         if(chroma.r == chroma.b && chroma.b == chroma.g)
         {
-            soundManager.Play(soundManager.starSound[6], volume, MySound);
+            soundManager.Play(soundManager.starSound[gamme], volume, MySound);
         }
-        else if(chroma.r == 0 && chroma.g == 0 && chroma.b == 1)
+        else if(chroma.r > chroma.b && chroma.r > chroma.g) // red
         {
-            soundManager.Play(soundManager.starSound[11], volume, MySound);
+            soundManager.Play(soundManager.starSound[gamme-1], volume, MySound);
         }
-        else if (chroma.r == 0 && chroma.g == 1 && chroma.b == 0)
+        else if (chroma.b > chroma.r && chroma.b > chroma.g) // blue
         {
-            soundManager.Play(soundManager.starSound[0], volume, MySound);
+            soundManager.Play(soundManager.starSound[gamme + 3], volume, MySound);
         }
-        else if (chroma.r == 0 && chroma.g == 1 && chroma.b == 1)
+        else if (chroma.g > chroma.b && chroma.g > chroma.r) // green
         {
-            soundManager.Play(soundManager.starSound[0], volume, MySound);
+            soundManager.Play(soundManager.starSound[gamme - 3], volume, MySound);
+        }
+        else if (chroma.r == chroma.b && chroma.b > chroma.g) // violet
+        {
+            soundManager.Play(soundManager.starSound[gamme + 1], volume, MySound);
+        }
+        else if (chroma.r == chroma.g && chroma.g > chroma.b) // jaune
+        {
+            soundManager.Play(soundManager.starSound[gamme - 2], volume, MySound);
+        }
+        else if (chroma.b == chroma.g && chroma.g > chroma.r) // cyan
+        {
+            soundManager.Play(soundManager.starSound[gamme + 2], volume, MySound);
         }
     }
 
