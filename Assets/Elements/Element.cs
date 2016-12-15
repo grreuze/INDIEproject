@@ -450,35 +450,63 @@ public abstract class Element : MonoBehaviour {
     public void PlayMySound()
     {
         float volume = .5f;
-        int gamme = 3; // can't be < 3 or > 8   Higher = High frequency
-        if(chroma.r == chroma.b && chroma.b == chroma.g)
+        int gamme = 5; // can't be < 3 or > 8   Higher = High frequency
+        if(chroma.r == chroma.b && chroma.b == chroma.g) // white
         {
             soundManager.Play(soundManager.starSound[gamme], volume, MySound);
         }
-        else if(chroma.r > chroma.b && chroma.r > chroma.g) // red
+
+        if (chroma.b > chroma.r && chroma.g > chroma.b) //violet - blue
         {
-            soundManager.Play(soundManager.starSound[gamme-1], volume, MySound);
-        }
+            soundManager.Play(soundManager.starSound[gamme + 5], volume, MySound);
+        } 
+
         else if (chroma.b > chroma.r && chroma.b > chroma.g) // blue
         {
-            soundManager.Play(soundManager.starSound[gamme + 3], volume, MySound);
-        }
-        else if (chroma.g > chroma.b && chroma.g > chroma.r) // green
-        {
-            soundManager.Play(soundManager.starSound[gamme - 3], volume, MySound);
-        }
-        else if (chroma.r == chroma.b && chroma.b > chroma.g) // violet
-        {
-            soundManager.Play(soundManager.starSound[gamme + 1], volume, MySound);
-        }
-        else if (chroma.r == chroma.g && chroma.g > chroma.b) // jaune
-        {
-            soundManager.Play(soundManager.starSound[gamme - 2], volume, MySound);
+            soundManager.Play(soundManager.starSound[gamme + 4], volume, MySound);
         }
         else if (chroma.b == chroma.g && chroma.g > chroma.r) // cyan
         {
+            soundManager.Play(soundManager.starSound[gamme + 3], volume, MySound);
+        }
+
+        else if (chroma.r == chroma.b && chroma.b > chroma.g) // rose
+        {
             soundManager.Play(soundManager.starSound[gamme + 2], volume, MySound);
         }
+
+        else if (chroma.r > chroma.b && chroma.b > chroma.g) //magenta
+        {
+            soundManager.Play(soundManager.starSound[gamme + 1], volume, MySound);
+        } 
+
+        //MID (white in logic)
+
+        else if (chroma.r > chroma.b && chroma.r > chroma.g) // red
+        {
+            soundManager.Play(soundManager.starSound[gamme - 1], volume, MySound);
+        }
+
+        if (chroma.r > chroma.g && chroma.g > chroma.b) //orange
+        {
+            soundManager.Play(soundManager.starSound[gamme - 2], volume, MySound);
+        }
+
+        else if (chroma.r == chroma.g && chroma.g > chroma.b) // jaune
+        {
+            soundManager.Play(soundManager.starSound[gamme - 3], volume, MySound);
+        }
+
+        else if (chroma.g > chroma.b && chroma.b > chroma.r) //Jaune - vert
+        {
+            soundManager.Play(soundManager.starSound[gamme - 4], volume, MySound);
+        } 
+
+        else if (chroma.g > chroma.b && chroma.g > chroma.r) // green
+        {
+            soundManager.Play(soundManager.starSound[gamme - 5], volume, MySound);
+        }
+
     }
 
     #endregion
