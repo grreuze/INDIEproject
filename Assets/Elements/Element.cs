@@ -57,6 +57,7 @@ public abstract class Element : MonoBehaviour {
     static WorldWrapper wrapper;
     Transform worldTransform;
     AudioSource MySound;
+    SoundManager soundManager;
 
     /// <summary>
     /// If the element is unique, the loop in which it exists.
@@ -85,8 +86,8 @@ public abstract class Element : MonoBehaviour {
         col = GetComponent<Collider>();
         rend = GetComponent<Renderer>();
         MySound = GetComponent<AudioSource>();
+        soundManager = SoundManager.singleton;
         rend.sharedMaterial = mat;
-        MySound.volume = .7f;
         outlineColor = chroma.color == Color.white ? outlineColorWhenChromaIsWhite : chroma.color;
         
         if (!wrapper) wrapper = WorldWrapper.singleton;
@@ -443,28 +444,27 @@ public abstract class Element : MonoBehaviour {
 
     #endregion
 
-    #region Scale Methods
+    #region Sound Methods
 
     public void PlayMySound()
     {
-        MySound.volume = transform.localScale.x * (.6f / scale.max);
+        float volume = .5f;
         if(chroma.r == chroma.b && chroma.b == chroma.g)
         {
-            MySound.pitch = 1;
+            soundManager.Play(soundManager.starSound[6], volume, MySound);
         }
-        else if (chroma.b > chroma.r && chroma.b > chroma.g)
+        else if(chroma.r == 0 && chroma.g == 0 && chroma.b == 1)
         {
-            MySound.pitch = 1 - ((0.8f / 3) * chroma.b);
+            soundManager.Play(soundManager.starSound[11], volume, MySound);
         }
-        else if (chroma.r > chroma.b && chroma.r > chroma.g)
+        else if (chroma.r == 0 && chroma.g == 1 && chroma.b == 0)
         {
-            MySound.pitch = 1 + ((0.5f / 3) * chroma.r);
+            soundManager.Play(soundManager.starSound[0], volume, MySound);
         }
-        else if (chroma.g > chroma.b && chroma.g > chroma.r)
+        else if (chroma.r == 0 && chroma.g == 1 && chroma.b == 1)
         {
-            MySound.pitch = 1.5f + ((1.5f / 3) * chroma.g);
+            soundManager.Play(soundManager.starSound[0], volume, MySound);
         }
-        MySound.Play();
     }
 
     #endregion
