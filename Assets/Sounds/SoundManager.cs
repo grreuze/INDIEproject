@@ -6,6 +6,9 @@ public class SoundManager : MonoBehaviour {
 
     public static SoundManager singleton;
     public AudioClip[] starSound;
+    public AudioClip starCreation;
+    public AudioClip starBreak;
+    public AudioClip startSound;
 
 
     void Awake()
@@ -26,6 +29,7 @@ public class SoundManager : MonoBehaviour {
     public void Play(AudioClip audioClip, float volume, AudioSource audioSource)
     {
         audioSource.PlayOneShot(audioClip, volume);
+        Debug.Log("Son joué : " + audioClip + " volume :" + volume);
     }
 
 }

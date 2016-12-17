@@ -117,17 +117,19 @@ public class CircuitManager : MonoBehaviour {
                 newChroma += prism.chroma;
 
             newChroma.ReBalance();
-			Vector3 positionNewStar = AveragePoint (path);
+            Vector3 positionNewStar = AveragePoint(path);
 
-			foreach (Element prism in path) {
-				prism.GetComponent<Prism_Movement>().StartCoroutine ("bringPrismTowardsCenterOfPath", positionNewStar);
-			}
-            
-			Instantiate(PrefabManager.starCreationParticles, positionNewStar, Quaternion.identity); //spawn the creation particles
-			
-            while(path.Count > 0) path.Remove(path[0]);
+            foreach (Element prism in path) {
+                prism.GetComponent<Prism_Movement>().StartCoroutine("bringPrismTowardsCenterOfPath", positionNewStar);
+            }
 
-			WorldWrapper.singleton.currentInstance.CreateStar(positionNewStar, newChroma); //create the new star
+            Instantiate(PrefabManager.starCreationParticles, positionNewStar, Quaternion.identity); //spawn the creation particles
+
+            while (path.Count > 0) path.Remove(path[0]);
+
+            WorldWrapper.singleton.currentInstance.CreateStar(positionNewStar, newChroma); //create the new star
+
+            SoundManager.singleton.Play(SoundManager.singleton.starCreation, 1f, WorldWrapper.singleton.currentInstance.stars[WorldWrapper.singleton.currentInstance.stars.Length - 1].GetComponent<AudioSource>());
 
         } else if (path[0].GetComponent<Star>()) { // Star Loop
             List<Star> loop = new List<Star>();

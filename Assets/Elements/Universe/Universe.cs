@@ -34,8 +34,10 @@ public class Universe : MonoBehaviour {
     void OnMouseDown() {
         StartCoroutine("StartGame");
         Destroy(GameObject.Find("GameTitle"));
+        SoundManager.singleton.Play(SoundManager.singleton.startSound, 1f, Camera.main.GetComponent<AudioSource>());
+        Camera.main.GetComponent<GameController>().gameStarted = true;
     }
-    
+
     IEnumerator StartGame() {
         ps.Clear();
         ps.Stop();

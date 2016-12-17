@@ -56,7 +56,7 @@ public abstract class Element : MonoBehaviour {
 
     static WorldWrapper wrapper;
     Transform worldTransform;
-    AudioSource MySound;
+    protected AudioSource MySound;
     SoundManager soundManager;
 
     /// <summary>
@@ -316,6 +316,8 @@ public abstract class Element : MonoBehaviour {
         newLink.origin.links.Add(newLink);
         Mouse.link = null;
         CircuitManager.instance.CheckCircuit(target);
+        newLink.origin.VertexPing();
+        newLink.target.VertexPing();
     }
 
     public void AutoLinkTo(Element target) {

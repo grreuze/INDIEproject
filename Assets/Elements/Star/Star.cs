@@ -99,6 +99,7 @@ public class Star : Element {
         if (isShaking) {
             Instantiate(destroyParticles, transform.position, Quaternion.identity); //spawn the breaking particles
             BreakStar();
+            SoundManager.singleton.Play(SoundManager.singleton.starBreak, 1f, MySound);
         } else ResetCheckShake();
     }
 

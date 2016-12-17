@@ -15,6 +15,10 @@ public class GameController : MonoBehaviour {
     public float screenCenterMargin = 20;
     public float screenBorderMargin = 10;
     public float zoomSpeed, zoomStopSpeed;
+
+    public bool gameStarted = false;
+
+    AudioSource mainAudio;
     
     WorldWrapper wrapper;
 
@@ -39,6 +43,8 @@ public class GameController : MonoBehaviour {
         cursor = FindObjectOfType<WorldSpaceCursor>();
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Confined;
+
+        mainAudio = Camera.main.GetComponent<AudioSource>();
     }
 
     void OnApplicationFocus() {
@@ -105,20 +111,29 @@ public class GameController : MonoBehaviour {
 
     void MousePositionZoom() {
         if (!isDragging && (Input.mousePosition.x > (Screen.width / 2) - screenCenterMargin && Input.mousePosition.x < (Screen.width / 2) + screenCenterMargin
-            && Input.mousePosition.y > (Screen.height / 2) - screenCenterMargin && Input.mousePosition.y < (Screen.height / 2) + screenCenterMargin)) {
+            && Input.mousePosition.y > (Screen.height / 2) - screenCenterMargin && Input.mousePosition.y < (Screen.height / 2) + screenCenterMargin))
+        {
             zoomValue += zoomValue >= 1 ? 0 : Time.deltaTime * zoomSpeed;
-        } else if (zoomValue > 0) {
+            PlayZoomSound();
+        }
+        else if (zoomValue > 0)
+        {
             zoomValue -= Time.deltaTime * zoomStopSpeed;
             if (zoomValue < 0) zoomValue = 0;
         }
 
         if (!isDragging && (Input.mousePosition.x < screenBorderMargin || Input.mousePosition.y < screenBorderMargin ||
-            Input.mousePosition.x > Screen.width - screenBorderMargin || Input.mousePosition.y > Screen.height - screenBorderMargin)) {
+            Input.mousePosition.x > Screen.width - screenBorderMargin || Input.mousePosition.y > Screen.height - screenBorderMargin))
+        {
             zoomValue -= zoomValue <= -1 ? 0 : Time.deltaTime * zoomSpeed;
-        } else if (zoomValue < 0) {
+            PlayZoomSound();
+        }
+        else if (zoomValue < 0)
+        {
             zoomValue += Time.deltaTime * zoomStopSpeed;
             if (zoomValue > 0) zoomValue = 0;
         }
+        mainAudio.volume = Mathf.Clamp(Mathf.Abs(zoomValue), 0.2f,1f);
         wrapper.Zoom(zoomValue);
     }
 
@@ -148,6 +163,22 @@ public class GameController : MonoBehaviour {
 
     #endregion
 
+    void PlayZoomSound()
+    {
+        if(!mainAudio.isPlaying && gameStarted){
+            SoundManager.singleton.Play(SoundManager.singleton.startSound, 1f, mainAudio);
+        }
+    }
+
+    /*                          We may need this if we don't want ambiant sound
+    void StopZoomSound()
+    {
+        if (mainAudio.isPlaying && mainAudio.volume == 0)
+        {
+            mainAudio.Stop();
+        }
+    }
+    */
     IEnumerator Momentum() {
         float duration = 4;
 
