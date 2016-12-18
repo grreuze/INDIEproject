@@ -5,7 +5,9 @@ using System.Collections.Generic;
 public class Link : MonoBehaviour {
 
     #region Properties
-    
+
+    #region Public Properties
+
     [Header("Line Renderer Properties"), SerializeField, Tooltip("The start and end width of the line renderer")]
     float _width = 0.5f;
     float width {
@@ -27,13 +29,9 @@ public class Link : MonoBehaviour {
     public List<Prism> prismToOrigin;
     public List<Prism> prismToTarget;
     public bool connected;
+    public Existence existence;
     [SerializeField]
     bool adjustWidth;
-    
-    [Header("Animation"), SerializeField]
-    float waveHeight = 1.5f;
-    [SerializeField]
-    float waveLength = 0.3f, waveDuration = 0.2f, waveSpeed = 60;
 
     /// <summary>
     /// Returns whether or not the Link is currently visible by the player.
@@ -41,7 +39,6 @@ public class Link : MonoBehaviour {
     public bool isVisible {
         get { return (originMetaPos != targetMetaPos) || (originMetaPos == targetMetaPos && targetMetaPos == MetaPosition.InRange); }
     }
-
     /// <summary>
     /// The length of the link. Distance between originPosition and targetPosition.
     /// </summary>
@@ -49,19 +46,32 @@ public class Link : MonoBehaviour {
         get { return Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x; }
     }
 
+    #endregion
+
+    #region Animation Properties
+
+    [Header("Animation"), SerializeField]
+    float waveHeight = 1.5f;
+    [SerializeField]
+    float waveLength = 0.3f, waveDuration = 0.2f, waveSpeed = 60;
+    bool animated;
+
+    #endregion
+
+    #region Private Properties
+    
     enum MetaPosition { InRange, External, Internal }
     MetaPosition originMetaPos, targetMetaPos;
-    Existence existence;
     LineRenderer line;
     BoxCollider col;
-    bool destroyed, animated;
+    bool destroyed, repeatable;
+    float loopDifference;
 
     float startWidth {
         get {
             return originMetaPos == MetaPosition.Internal ? 0 : origin.transform.lossyScale.x * width * transform.localScale.x;
         }
     }
-
     float endWidth {
         get {
             return targetMetaPos == MetaPosition.Internal ? 0 : target.transform.lossyScale.x * width * transform.localScale.x;
@@ -79,7 +89,6 @@ public class Link : MonoBehaviour {
             return GetMetaPosition(origin.transform.position, ref originMetaPos, originLoop, worldLoop);
         }
     }
-
     Vector3 targetPosition {
         get {
             bool moving = target.isHeld || target.anchored;
@@ -89,6 +98,8 @@ public class Link : MonoBehaviour {
     }
 
     float screenDepth;
+
+    #endregion
 
     #endregion
 
@@ -103,10 +114,13 @@ public class Link : MonoBehaviour {
         SetStartColor();
         transform.localPosition = Vector3.zero;
         screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
+        gameObject.layer = 2;
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
         SetStartPostion(originPosition);
+        
+        gameObject.layer = Mouse.breakLinkMode || Mouse.isHoldingPrism ? 0 : 2;
 
         if (connected) {
             transform.position = originPosition; // sometimes infinity
@@ -161,6 +175,36 @@ public class Link : MonoBehaviour {
     #endregion
 
     #region Properties Setter Functions
+
+    public void Connect(Element target) {
+        this.target = target;
+        targetLoop = target.worldInstance.loop;
+        connected = true;
+        target.targeted.Add(this);
+        origin.links.Add(this);
+        Mouse.link = null;
+        CircuitManager.instance.CheckCircuit(target);
+        SetExistence();
+    }
+
+    void SetExistence() {
+        Existence start = origin.existence;
+        Existence end = target.existence;
+
+        if (start == Existence.unique || end == Existence.unique) {
+            existence = Existence.unique;
+        } else {
+            if (start == Existence.cloned && end == Existence.cloned) {
+                existence = Existence.cloned;
+            } else if (start == Existence.substracted || end == Existence.substracted) {
+                existence = Existence.substracted;
+            }
+            // the link is repeatable
+            // difference between loops
+            repeatable = true;
+            loopDifference = originLoop - targetLoop;
+        }
+    }
 
     void SetCollider() {
         transform.LookAt(targetPosition); // sometimes infinity

@@ -24,6 +24,10 @@ public static class Mouse {
 
     public static bool breakLinkMode;
 
+    public static bool isHoldingPrism {
+        get { return holding && holding.GetComponent<Prism>(); }
+    }
+
     /// <summary>
     /// Breaks the link tied to the mouse.
     /// </summary>
