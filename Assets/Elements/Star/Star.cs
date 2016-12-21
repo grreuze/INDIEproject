@@ -10,6 +10,8 @@ public class Star : Element {
     StarParticles particles;
     [SerializeField]
     GameObject destroyParticles;
+    [SerializeField]
+    GameObject circleParticle;
     float lastClick;
     float doubleClickTime = 0.5f;
 
@@ -30,6 +32,7 @@ public class Star : Element {
         particles.Stop();
         base.StopHold();
         StopCoroutine("CheckShake");
+        shakesPerformed = 0; //reseting the value used in the coroutine
         if (Time.time - lastClick < doubleClickTime) {
             CircuitManager.instance.SendSignal(this);
             //PlayMySound();
@@ -71,6 +74,8 @@ public class Star : Element {
         prism.transform.LookAt(transform);
     }
 
+    public float shakesPerformed;
+
     IEnumerator CheckShake() {
         bool isShaking = false;
         int shakeRequired = 6; // Number of mouse x direction change required
@@ -87,7 +92,12 @@ public class Star : Element {
             
             if (Mathf.Abs(mouseX) > minAmplitude) {
                 if (previousMove != currentMove) {
-                    // Feedback secouer
+                    // Shake feedback
+                    Instantiate(circleParticle, transform.position, Quaternion.identity);
+                    shakesPerformed++;
+                    SoundManager.singleton.Play(SoundManager.singleton.shakeStar, 0.5f + (shakesPerformed/20f), MySound);
+                    MySound.pitch = 0.8f + (shakesPerformed/12f);
+                    // End shake feedback
                     previousMove = currentMove;
                     shakeRequired--;
                 }
@@ -106,6 +116,7 @@ public class Star : Element {
     void ResetCheckShake() {
         StopCoroutine("CheckShake");
         StartCoroutine("CheckShake");
+        shakesPerformed = 0;
     }
 
 }
