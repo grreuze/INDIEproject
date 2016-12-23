@@ -54,7 +54,7 @@ public class CircuitManager : MonoBehaviour {
         currentPath.Add(element);
 
         if (element.links.Count > 0) {
-            foreach (Link link in element.links) {
+            foreach (Link link in element.links) { // Sometimes invalid operation
                 CheckIfPathContains(currentPath, link.target);
                 if (prismLoop) yield break;
                 yield return new WaitForEndOfFrame();

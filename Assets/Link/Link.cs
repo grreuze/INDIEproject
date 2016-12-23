@@ -24,8 +24,29 @@ public class Link : MonoBehaviour {
     [Header("Link Properties")]
     public Element origin;
     public Element target;
-    public int originLoop;
-    public int targetLoop;
+
+    [SerializeField]
+    int _originLoop = 0, _targetLoop = 0;
+
+    public int originLoop {
+        get { return repeatable && target.isActive ? originWorldLoop : _originLoop; }
+        set {
+            if (_originLoop != value && animated && target)
+                _targetLoop = originWorldLoop - loopDifference;
+            _originLoop = value;
+            loopDifference = _originLoop - _targetLoop;
+        }
+    }
+    public int targetLoop {
+        get { return repeatable && target.isActive ? originWorldLoop - loopDifference : _targetLoop; }
+        set {
+            if (_targetLoop != value && animated) 
+                _originLoop = originWorldLoop;
+            _targetLoop = value;
+            loopDifference = _originLoop - _targetLoop;
+        }
+    }
+
     public List<Prism> prismToOrigin;
     public List<Prism> prismToTarget;
     public bool connected;
@@ -65,7 +86,7 @@ public class Link : MonoBehaviour {
     LineRenderer line;
     BoxCollider col;
     bool destroyed, repeatable;
-    float loopDifference;
+    int loopDifference;
 
     float startWidth {
         get {
@@ -78,22 +99,48 @@ public class Link : MonoBehaviour {
         }
     }
 
+    WorldWrapper wrapper;
     WorldInstance worldInstance {
         get { return origin.worldInstance; }
     }
 
+    int originWorldLoop {
+        get {
+            WorldInstance instance = worldInstance;
+            if (origin.isHeld)
+                instance = wrapper.currentInstance;
+            else if (origin.anchored) {
+                int instanceID = wrapper.currentInstance.id - origin.anchorInstanceOffset;
+                if (instanceID >= wrapper.numberOfInstances) instanceID -= wrapper.numberOfInstances;
+                else if (instanceID < 0) instanceID += wrapper.numberOfInstances;
+                instance = wrapper.worldInstances[instanceID];
+            }
+            return instance.loop;
+        }
+    }
+    int targetWorldLoop {
+        get {
+            WorldInstance instance = target.worldInstance;
+            if (target.isHeld)
+                instance = wrapper.currentInstance;
+            else if (target.anchored) {
+                int instanceID = wrapper.currentInstance.id - target.anchorInstanceOffset;
+                if (instanceID >= wrapper.numberOfInstances) instanceID -= wrapper.numberOfInstances;
+                else if (instanceID < 0) instanceID += wrapper.numberOfInstances;
+                instance = wrapper.worldInstances[instanceID];
+            }
+            return instance.loop;
+        }
+    }
+
     Vector3 originPosition {
         get {
-            bool moving = origin.isHeld || origin.anchored;
-            int worldLoop = moving ? WorldWrapper.singleton.currentInstance.loop : worldInstance.loop;
-            return GetMetaPosition(origin.transform.position, ref originMetaPos, originLoop, worldLoop);
+            return GetMetaPosition(origin.transform.position, ref originMetaPos, originLoop, originWorldLoop);
         }
     }
     Vector3 targetPosition {
         get {
-            bool moving = target.isHeld || target.anchored;
-            int worldLoop = moving ? WorldWrapper.singleton.currentInstance.loop : target.worldInstance.loop;
-            return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, worldLoop);
+            return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, targetWorldLoop);
         }
     }
 
@@ -106,6 +153,7 @@ public class Link : MonoBehaviour {
     #region MonoBehaviour Functions
 
     void Start() {
+        wrapper = WorldWrapper.singleton;
         line = GetComponent<LineRenderer>();
         line.sharedMaterial = mat;
         origin = transform.parent.GetComponent<Element>();
@@ -127,7 +175,7 @@ public class Link : MonoBehaviour {
 
             if (!animated) {
                 SetEndColor();
-                int vertices = (int)(length / segmentLength);
+                int vertices = Mathf.Max(2, (int)(length / segmentLength));
                 line.numPositions = vertices;
 
                 for (int currentVertice = 1; currentVertice < vertices; currentVertice++) {
@@ -182,7 +230,8 @@ public class Link : MonoBehaviour {
         connected = true;
         target.targeted.Add(this);
         origin.links.Add(this);
-        Mouse.link = null;
+        if (Mouse.link == this) Mouse.link = null;
+        if (Mouse.linking == origin) Mouse.linking = null;
         CircuitManager.instance.CheckCircuit(target);
         SetExistence();
     }
@@ -199,8 +248,6 @@ public class Link : MonoBehaviour {
             } else if (start == Existence.substracted || end == Existence.substracted) {
                 existence = Existence.substracted;
             }
-            // the link is repeatable
-            // difference between loops
             repeatable = true;
             loopDifference = originLoop - targetLoop;
         }
@@ -254,6 +301,8 @@ public class Link : MonoBehaviour {
 
     public void BreakLink() {
         destroyed = true;
+
+        //We need to destroy clones as well
 
         ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
         SetParticleSystem(ps);
