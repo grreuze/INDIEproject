@@ -9,7 +9,7 @@ public class SoundManager : MonoBehaviour {
     public AudioClip starCreation;
     public AudioClip starBreak;
     public AudioClip startSound;
-    public AudioClip shakeStar;
+    public AudioClip stringSound;
 
 
     void Awake()
