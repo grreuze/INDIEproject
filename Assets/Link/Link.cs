@@ -189,16 +189,17 @@ public class Link : MonoBehaviour {
             float linkLength = Vector3.Distance(origin.transform.position, target.transform.position); //length of link
             animated = false;
             waveHeight = (cursorSpeedF / 5f) + 0.5f;
+            waveHeight = Mathf.Clamp(waveHeight, 0f, 3f);
             waveLength = (1/70f) * linkLength;
             waveSpeed = 10f + (cursorSpeedF * 2f);
             waveDuration = 0.5f;
 
             //Sound
             //Sound intensity should change according to the speed at which the string is struck
-            SoundManager.singleton.Play(SoundManager.singleton.stringSound, 0.2f + (cursorSpeedF / 10f), MySound);
+            SoundManager.singleton.Play(SoundManager.singleton.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 2f), MySound);
             //Sound should be high or low depending on the string's size
             MySound.pitch = 1 / (linkLength * 0.1f);
-            MySound.pitch = Mathf.Clamp(MySound.pitch, 0.1f, 2f);
+            MySound.pitch = Mathf.Clamp(MySound.pitch, 0.3f, 1.7f);
             //The color of the string (link) should also impact the sound (change in "instrument")
         }
 
@@ -258,7 +259,7 @@ public class Link : MonoBehaviour {
     void SetCollider() {
         transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
-        col.size = new Vector3(width, width, length);
+        col.size = new Vector3(width + (0.6f * Mathf.Sqrt(cursorSpeedF - 1f)), width + (0.6f * Mathf.Sqrt(cursorSpeedF - 1f)), length);
     }
 
     void SetStartPostion(Vector3 pos) {
