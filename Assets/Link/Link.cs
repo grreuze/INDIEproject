@@ -295,16 +295,37 @@ public class Link : MonoBehaviour {
         line.endColor = target.chroma.color;
     }
 
+    /// <summary>
+    /// Returns the position of a point given the loop it is in and the current world loop.
+    /// </summary>
+    /// <param name="point"> The world position of the desired point. </param>
+    /// <param name="loop"> The loop of the desired point. </param>
+    /// <param name="worldLoop"> The loop of the world instance containing the desired point. </param>
+    /// <returns> The actual world position the point is at. </returns>
+    Vector3 GetMetaPosition(Vector3 point, ref MetaPosition pos, int loop, int worldLoop) {
+        if (worldLoop > loop) {
+            pos = MetaPosition.External;
+            return point.normalized * 1000; // Float approximation, not the best method
+        } else if (worldLoop < loop) {
+            pos = MetaPosition.Internal;
+            return Vector3.zero;
+        } else {
+            pos = MetaPosition.InRange;
+            return point;
+        }
+    }
+
     #endregion
 
     #region Destroy Functions
 
-    public void BreakLink() {
+    public void BreakLink(bool destroyClones = true) {
         destroyed = true;
 
-        //We need to destroy clones as well
+        if (repeatable && destroyClones)
+            origin.DestroyCloneLink(target.id);
 
-        ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
+        ParticleSystem ps = GetComponentInChildren<ParticleSystem>() ?? null;
         SetParticleSystem(ps);
         ps.Play();
 
@@ -325,23 +346,4 @@ public class Link : MonoBehaviour {
 
     #endregion
 
-    /// <summary>
-    /// Returns the position of a point given the loop it is in and the current world loop.
-    /// </summary>
-    /// <param name="point"> The world position of the desired point. </param>
-    /// <param name="loop"> The loop of the desired point. </param>
-    /// <param name="worldLoop"> The loop of the world instance containing the desired point. </param>
-    /// <returns> The actual world position the point is at. </returns>
-    Vector3 GetMetaPosition(Vector3 point, ref MetaPosition pos, int loop, int worldLoop) {
-        if (worldLoop > loop) {
-            pos = MetaPosition.External;
-            return point.normalized * 1000; // Float approximation, not the best method
-        } else if (worldLoop < loop) {
-            pos = MetaPosition.Internal;
-            return Vector3.zero;
-        } else {
-            pos = MetaPosition.InRange;
-            return point;
-        }
-    }
 }

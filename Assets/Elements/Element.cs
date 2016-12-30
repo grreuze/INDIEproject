@@ -229,7 +229,6 @@ public abstract class Element : MonoBehaviour {
         worldTransform = transform.parent;
         worldInstance = worldTransform.GetComponent<WorldInstance>();
         worldInstance.stars[id] = GetComponent<Star>() ?? worldInstance.stars[id];
-        print("new instance: " + worldInstance.id);
     }
 
     /// <summary>
@@ -287,13 +286,9 @@ public abstract class Element : MonoBehaviour {
                 if (Mouse.linking && Mouse.linking.GetType() == GetType() && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
                     if (existence != Existence.unique && Mouse.link.origin.existence != Existence.unique) {
                         int instanceDifference = Mouse.link.origin.worldInstance.id - worldInstance.id;
-                        int loopDifference = Mouse.link.originLoop - worldInstance.loop;
-                        print("calling clones of " + Mouse.link.origin.name + " [" + Mouse.link.origin.worldInstance.id + "]");
-                        print("loop difference is " + loopDifference);
+                        int loopDifference = Mouse.link.origin.worldInstance.loop - Mouse.link.originLoop; // number of times we've crossed boundaries
                         Mouse.link.origin.LinkClones(id, instanceDifference, loopDifference);
                     }
-                    Mouse.link.origin.name += " og link";
-                    print("done for original: [" + Mouse.link.origin.worldInstance.id + "]");
                     Mouse.link.Connect(this);
                 } else {
                     Mouse.BreakLink();
@@ -344,7 +339,7 @@ public abstract class Element : MonoBehaviour {
         int maxInstance = numberOfInstances - 1;
 
         int diff = -instanceDiff; // Check if we're crossing inner or outer bounds
-        if (diff > (maxInstance - worldInstance.id) || diff < (-worldInstance.id))
+        if (diff > (maxInstance - worldInstance.id) || diff < (-worldInstance.id)) 
             loopDiff -= (diff / maxInstance) + (int)Mathf.Sign(diff);
 
         int targetInstanceID = worldInstance.id - instanceDiff;
@@ -467,6 +462,17 @@ public abstract class Element : MonoBehaviour {
     void LinkClones(int targetID, int instanceDiff, int loopDiff) {
         foreach(Star clone in clones)
             clone.AutoLink(targetID, instanceDiff, loopDiff);
+    }
+
+    public void DestroyCloneLink(int targetID) {
+        foreach(Star clone in clones) {
+            foreach(Link link in clone.links) {
+                if (link.target.id == targetID) {
+                    link.BreakLink(false);
+                    break;
+                }
+            }
+        }
     }
 
     void RecolorClones() {
