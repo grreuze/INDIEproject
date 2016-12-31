@@ -10,8 +10,11 @@ public class Star : Element {
     StarParticles particles;
     [SerializeField]
     GameObject destroyParticles;
+    [SerializeField]
+    GameObject circleParticle;
     float lastClick;
     float doubleClickTime = 0.5f;
+    public int circleSize;
 
 
     #endregion
@@ -30,6 +33,7 @@ public class Star : Element {
         particles.Stop();
         base.StopHold();
         StopCoroutine("CheckShake");
+        shakesPerformed = 0; //reseting the value used in the coroutine
         if (Time.time - lastClick < doubleClickTime) {
             CircuitManager.instance.SendSignal(this);
             //PlayMySound();
@@ -71,6 +75,8 @@ public class Star : Element {
         prism.transform.LookAt(transform);
     }
 
+    public float shakesPerformed;
+
     IEnumerator CheckShake() {
         bool isShaking = false;
         int shakeRequired = 6; // Number of mouse x direction change required
@@ -79,7 +85,8 @@ public class Star : Element {
         bool previousMove = false;
         bool currentMove = false;
         float minAmplitude = 0.3f;
-        
+        circleSize = 1;
+
         while (isShaking == false && Time.time < shakeTime) {
 
             float mouseX = Input.GetAxis("Mouse X");
@@ -87,9 +94,13 @@ public class Star : Element {
             
             if (Mathf.Abs(mouseX) > minAmplitude) {
                 if (previousMove != currentMove) {
-                    // Feedback secouer
-                    previousMove = currentMove;
+                    // Shake feedback
                     shakeRequired--;
+                    circleSize++;
+                    Instantiate(circleParticle, transform.position, Quaternion.identity);
+                    Debug.Log("Shake performed :" + shakeRequired);
+                    if (shakeRequired != 0) SoundManager.singleton.Play(SoundManager.singleton.starSound[shakeRequired - 1], 1f, MySound);
+                    previousMove = currentMove;
                 }
                 if (shakeRequired == 0)
                     isShaking = true;
@@ -106,6 +117,7 @@ public class Star : Element {
     void ResetCheckShake() {
         StopCoroutine("CheckShake");
         StartCoroutine("CheckShake");
+        shakesPerformed = 0;
     }
 
 }

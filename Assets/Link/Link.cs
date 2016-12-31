@@ -8,6 +8,9 @@ public class Link : MonoBehaviour {
 
     #region Public Properties
 
+    public GameObject stringParticle;
+    public GameObject cursorSpeed;
+
     [Header("Line Renderer Properties"), SerializeField, Tooltip("The start and end width of the line renderer")]
     float _width = 0.5f;
     float width {
@@ -80,7 +83,7 @@ public class Link : MonoBehaviour {
     #endregion
 
     #region Private Properties
-    
+
     enum MetaPosition { InRange, External, Internal }
     MetaPosition originMetaPos, targetMetaPos;
     LineRenderer line;
@@ -146,6 +149,12 @@ public class Link : MonoBehaviour {
 
     float screenDepth;
 
+    ParticleSystem stringParticlePs;
+    float cursorSpeedF;
+
+    protected AudioSource MySound;
+    SoundManager soundManager;
+
     #endregion
 
     #endregion
@@ -163,6 +172,9 @@ public class Link : MonoBehaviour {
         transform.localPosition = Vector3.zero;
         screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
         gameObject.layer = 2;
+        cursorSpeed = GameObject.Find("CursorSpeed");
+        MySound = GetComponent<AudioSource>();
+        soundManager = SoundManager.singleton;
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
@@ -201,8 +213,44 @@ public class Link : MonoBehaviour {
             SetEndPosition(mouseWorldPos);
         }
     }
+    
+    void Update()
+    {
+        cursorSpeedF = cursorSpeed.GetComponent<CursorSpeedScript>().speed;
+    }
 
     void OnMouseEnter() {
+
+        //Links as musical strings - works only when holding a prism
+        if (Mouse.holding != null && Mouse.holding != origin && Mouse.holding != target)
+        { //Particles
+            stringParticlePs = stringParticle.GetComponent<ParticleSystem>();
+            var stringParticlePsMain = stringParticlePs.main;
+            var stringParticlePsColor = stringParticlePs.colorOverLifetime;
+            stringParticlePsMain.startSpeed = 3f * cursorSpeedF;
+            Gradient grad = new Gradient();
+            grad.SetKeys(new GradientColorKey[] { new GradientColorKey(GetComponent<LineRenderer>().startColor, 0.0f), new GradientColorKey(GetComponent<LineRenderer>().endColor, 1.0f) }, new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(1.0f, 1.0f) });
+            stringParticlePsColor.color = grad;
+            Instantiate(stringParticle, Mouse.holding.GetComponent<Transform>().position, Quaternion.identity);
+
+            //wave
+            float linkLength = Vector3.Distance(origin.transform.position, target.transform.position); //length of link
+            animated = false;
+            waveHeight = (cursorSpeedF / 5f) + 0.5f;
+            waveHeight = Mathf.Clamp(waveHeight, 0f, 3f);
+            waveLength = (1/70f) * linkLength;
+            waveSpeed = 10f + (cursorSpeedF * 2f);
+            waveDuration = 0.5f;
+
+            //Sound
+            //Sound intensity should change according to the speed at which the string is struck
+            SoundManager.singleton.Play(SoundManager.singleton.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 2f), MySound);
+            //Sound should be high or low depending on the string's size
+            MySound.pitch = 1 / (linkLength * 0.1f);
+            MySound.pitch = Mathf.Clamp(MySound.pitch, 0.3f, 1.7f);
+            //The color of the string (link) should also impact the sound (change in "instrument")
+        }
+
         if (Mouse.holding && Mouse.holding != target && Mouse.holding != origin &&
             Mouse.holding.GetComponent<Prism>()) {
             line.sharedMaterial = hoverMat;
@@ -215,10 +263,12 @@ public class Link : MonoBehaviour {
     }
 
     void OnMouseExit() {
+
         line.sharedMaterial = mat;
         if (Mouse.hover == this)
             Mouse.hover = null;
     }
+
 
     #endregion
 
@@ -256,7 +306,7 @@ public class Link : MonoBehaviour {
     void SetCollider() {
         transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
-        col.size = new Vector3(width, width, length);
+        col.size = new Vector3(width + (0.6f * Mathf.Sqrt(cursorSpeedF - 1f)), width + (0.6f * Mathf.Sqrt(cursorSpeedF - 1f)), length);
     }
 
     void SetStartPostion(Vector3 pos) {
