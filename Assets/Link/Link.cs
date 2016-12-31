@@ -9,7 +9,6 @@ public class Link : MonoBehaviour {
     #region Public Properties
 
     public GameObject stringParticle;
-    public GameObject cursorSpeed;
 
     [Header("Line Renderer Properties"), SerializeField, Tooltip("The start and end width of the line renderer")]
     float _width = 0.5f;
@@ -150,10 +149,14 @@ public class Link : MonoBehaviour {
     float screenDepth;
 
     ParticleSystem stringParticlePs;
-    float cursorSpeedF;
+    float cursorSpeedF {
+        get { return cursorSpeed.speed; }
+    }
 
     protected AudioSource MySound;
     SoundManager soundManager;
+
+    CursorSpeedScript cursorSpeed;
 
     #endregion
 
@@ -172,7 +175,7 @@ public class Link : MonoBehaviour {
         transform.localPosition = Vector3.zero;
         screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
         gameObject.layer = 2;
-        cursorSpeed = GameObject.Find("CursorSpeed");
+        cursorSpeed = GameObject.Find("CursorSpeed").GetComponent<CursorSpeedScript>();
         MySound = GetComponent<AudioSource>();
         soundManager = SoundManager.singleton;
     }
@@ -181,27 +184,11 @@ public class Link : MonoBehaviour {
         SetStartPostion(originPosition);
         
         gameObject.layer = Mouse.breakLinkMode || Mouse.isHoldingPrism ? 0 : 2;
-
+        
         if (connected) {
             transform.position = originPosition; // sometimes infinity
 
-            if (!animated) {
-                SetEndColor();
-                int vertices = Mathf.Max(2, (int)(length / segmentLength));
-                line.numPositions = vertices;
-
-                for (int currentVertice = 1; currentVertice < vertices; currentVertice++) {
-                    float step = (float)currentVertice / (float)vertices;
-                    Vector3 pos = Vector3.Lerp(originPosition, targetPosition, step);
-                    pos += transform.up * Mathf.Sin(Time.time * waveSpeed + currentVertice * waveLength) * waveHeight * (1 - Mathf.Abs(step - 0.5f)*2);
-                    line.SetPosition(currentVertice, pos);
-                }
-                waveHeight -= Time.deltaTime/waveDuration;
-                if (waveHeight <= 0) {
-                    animated = true;
-                    line.numPositions = 2;
-                }
-            }
+            if (!animated) Animate();
             
             SetEndPosition(targetPosition);
             SetCollider();
@@ -213,43 +200,11 @@ public class Link : MonoBehaviour {
             SetEndPosition(mouseWorldPos);
         }
     }
-    
-    void Update()
-    {
-        cursorSpeedF = cursorSpeed.GetComponent<CursorSpeedScript>().speed;
-    }
 
     void OnMouseEnter() {
 
-        //Links as musical strings - works only when holding a prism
         if (Mouse.holding != null && Mouse.holding != origin && Mouse.holding != target)
-        { //Particles
-            stringParticlePs = stringParticle.GetComponent<ParticleSystem>();
-            var stringParticlePsMain = stringParticlePs.main;
-            var stringParticlePsColor = stringParticlePs.colorOverLifetime;
-            stringParticlePsMain.startSpeed = 3f * cursorSpeedF;
-            Gradient grad = new Gradient();
-            grad.SetKeys(new GradientColorKey[] { new GradientColorKey(GetComponent<LineRenderer>().startColor, 0.0f), new GradientColorKey(GetComponent<LineRenderer>().endColor, 1.0f) }, new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(1.0f, 1.0f) });
-            stringParticlePsColor.color = grad;
-            Instantiate(stringParticle, Mouse.holding.GetComponent<Transform>().position, Quaternion.identity);
-
-            //wave
-            float linkLength = Vector3.Distance(origin.transform.position, target.transform.position); //length of link
-            animated = false;
-            waveHeight = (cursorSpeedF / 5f) + 0.5f;
-            waveHeight = Mathf.Clamp(waveHeight, 0f, 3f);
-            waveLength = (1/70f) * linkLength;
-            waveSpeed = 10f + (cursorSpeedF * 2f);
-            waveDuration = 0.5f;
-
-            //Sound
-            //Sound intensity should change according to the speed at which the string is struck
-            SoundManager.singleton.Play(SoundManager.singleton.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 2f), MySound);
-            //Sound should be high or low depending on the string's size
-            MySound.pitch = 1 / (linkLength * 0.1f);
-            MySound.pitch = Mathf.Clamp(MySound.pitch, 0.3f, 1.7f);
-            //The color of the string (link) should also impact the sound (change in "instrument")
-        }
+            PlayMusic();
 
         if (Mouse.holding && Mouse.holding != target && Mouse.holding != origin &&
             Mouse.holding.GetComponent<Prism>()) {
@@ -257,9 +212,8 @@ public class Link : MonoBehaviour {
             Mouse.hover = this;
         }
 
-        if (Mouse.breakLinkMode && !destroyed && isVisible) {
+        if (Mouse.breakLinkMode && !destroyed && isVisible)
             BreakLink();
-        }
     }
 
     void OnMouseExit() {
@@ -306,7 +260,9 @@ public class Link : MonoBehaviour {
     void SetCollider() {
         transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
-        col.size = new Vector3(width + (0.6f * Mathf.Sqrt(cursorSpeedF - 1f)), width + (0.6f * Mathf.Sqrt(cursorSpeedF - 1f)), length);
+        float colWidth = width + (0.6f * Mathf.Sqrt(Mathf.Max(0, cursorSpeedF - 1f)));
+        print(width + " + (0.6f * Mathf.Sqrt(" + cursorSpeedF + "-1f) = " + colWidth);
+        col.size = new Vector3(colWidth, colWidth, length);
     }
 
     void SetStartPostion(Vector3 pos) {
@@ -363,6 +319,57 @@ public class Link : MonoBehaviour {
             pos = MetaPosition.InRange;
             return point;
         }
+    }
+
+    #endregion
+
+    #region Miscellanous Functions
+
+    void Animate() {
+        SetEndColor();
+        int vertices = Mathf.Max(2, (int)(length / segmentLength));
+        line.numPositions = vertices;
+
+        for (int currentVertice = 1; currentVertice < vertices; currentVertice++) {
+            float step = (float)currentVertice / (float)vertices;
+            Vector3 pos = Vector3.Lerp(originPosition, targetPosition, step);
+            pos += transform.up * Mathf.Sin(Time.time * waveSpeed + currentVertice * waveLength) * waveHeight * (1 - Mathf.Abs(step - 0.5f) * 2);
+            line.SetPosition(currentVertice, pos);
+        }
+        waveHeight -= Time.deltaTime / waveDuration;
+        if (waveHeight <= 0) {
+            animated = true;
+            line.numPositions = 2;
+        }
+    }
+
+    //Links as musical strings - works only when holding a prism
+    void PlayMusic() {
+        //Particles
+        stringParticlePs = stringParticle.GetComponent<ParticleSystem>();
+        var stringParticlePsMain = stringParticlePs.main;
+        var stringParticlePsColor = stringParticlePs.colorOverLifetime;
+        stringParticlePsMain.startSpeed = 3f * cursorSpeedF;
+        Gradient grad = new Gradient();
+        grad.SetKeys(new GradientColorKey[] { new GradientColorKey(GetComponent<LineRenderer>().startColor, 0.0f), new GradientColorKey(GetComponent<LineRenderer>().endColor, 1.0f) }, new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(1.0f, 1.0f) });
+        stringParticlePsColor.color = grad;
+        Instantiate(stringParticle, Mouse.holding.GetComponent<Transform>().position, Quaternion.identity);
+
+        //wave
+        animated = false;
+        waveHeight = (cursorSpeedF / 5f) + 0.5f;
+        waveHeight = Mathf.Clamp(waveHeight, 0f, 3f);
+        waveLength = (1 / 70f) * length;
+        waveSpeed = 10f + (cursorSpeedF * 2f);
+        waveDuration = 0.5f;
+
+        //Sound
+        //Sound intensity should change according to the speed at which the string is struck
+        soundManager.Play(soundManager.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 2f), MySound);
+        //Sound should be high or low depending on the string's size
+        MySound.pitch = 1 / (length * 0.1f);
+        MySound.pitch = Mathf.Clamp(MySound.pitch, 0.3f, 1.7f);
+        //The color of the string (link) should also impact the sound (change in "instrument")
     }
 
     #endregion
