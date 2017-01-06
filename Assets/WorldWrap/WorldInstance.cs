@@ -4,17 +4,16 @@ public class WorldInstance : MonoBehaviour {
 
     public int numberOfStars;
     public float radius = 10;
+    public Star starPrefab;
     public Star[] stars;
     public int loop = 0;
-    Star starPrefab;
-
+    
     public int id {
         get { return WorldWrapper.singleton.worldInstanceID(this); }
     }
 
     void Start() {
         stars = new Star[numberOfStars];
-        starPrefab = PrefabManager.star;
         for (int i = 0; i < numberOfStars; i++) {
             Vector3 pos = new Vector3(Random.Range(-radius, radius), Random.Range(-radius, radius), Random.Range(-radius, radius));
             Star newStar = (Star)Instantiate(starPrefab, pos, Quaternion.identity);

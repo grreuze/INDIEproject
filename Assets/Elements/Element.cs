@@ -43,7 +43,6 @@ public abstract class Element : MonoBehaviour {
     }
 
     public bool anchored;
-    public int anchorInstanceOffset;
     
     public float vertexOffset {
         get { return rend.material.GetFloat("_VertexOffset"); }
@@ -106,6 +105,8 @@ public abstract class Element : MonoBehaviour {
 
         if (anchored) {
             UpdateLinks();
+            if (links.Count > 0 || targeted.Count > 0)
+                print(worldInstance.loop);
         }
         
         if (existence == Existence.unique)
@@ -228,7 +229,6 @@ public abstract class Element : MonoBehaviour {
     void GetWorldInstance() {
         worldTransform = transform.parent;
         worldInstance = worldTransform.GetComponent<WorldInstance>();
-        worldInstance.stars[id] = GetComponent<Star>() ?? worldInstance.stars[id];
     }
 
     /// <summary>
@@ -251,11 +251,8 @@ public abstract class Element : MonoBehaviour {
             transform.parent = worldTransform;
         else {
             SetNewInstance(diff);
-            if (existence == Existence.cloned) {
+            if (existence == Existence.cloned)
                 SetNewCloneInstance(diff);
-                if (anchorInstanceOffset == 0)
-                    MoveClones();
-            }
         }
     }
 
@@ -284,12 +281,8 @@ public abstract class Element : MonoBehaviour {
             }
             if (Input.GetMouseButtonUp(1)) {
                 if (Mouse.linking && Mouse.linking.GetType() == GetType() && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
-                    if (existence != Existence.unique && Mouse.link.origin.existence != Existence.unique) {
-                        int instanceDifference = Mouse.link.origin.worldInstance.id - worldInstance.id;
-                        int loopDifference = Mouse.link.origin.worldInstance.loop - Mouse.link.originLoop; // number of times we've crossed boundaries
-                        Mouse.link.origin.LinkClones(id, instanceDifference, loopDifference);
-                    }
                     Mouse.link.Connect(this);
+                    Mouse.linking = null;
                 } else {
                     Mouse.BreakLink();
                 }
@@ -313,65 +306,36 @@ public abstract class Element : MonoBehaviour {
         Mouse.link.originLoop = worldInstance.loop;
         Mouse.link.connected = false;
     }
-    
-    void LinkTo(Element target, int targetLoop) {
+
+    public void AutoLinkTo(Element target) {
         Link newLink = Instantiate(PrefabManager.link);
 
         newLink.transform.parent = transform;
-        newLink.origin = this;
         newLink.transform.position = transform.position;
         newLink.originLoop = worldInstance.loop;
         links.Add(newLink);
 
-        newLink.Connect(target);
-        newLink.targetLoop = targetLoop;
-    }
+        newLink.target = target;
+        newLink.targetLoop = target.worldInstance.loop;
+        target.targeted.Add(newLink);
+        newLink.connected = true;
 
-    /// <summary>
-    /// Automatically links this element to another using relative positions.
-    /// </summary>
-    /// <param name="targetID"> The ID of the element we're linking to </param>
-    /// <param name="instanceDiff"> The number of instances between this element and the targeted element </param>
-    /// <param name="loopDiff"> The number of loops between this element and the targeted element </param>
-    public void AutoLink(int targetID, int instanceDiff, int loopDiff) {
-
-        int numberOfInstances = wrapper.numberOfInstances;
-        int maxInstance = numberOfInstances - 1;
-
-        int diff = -instanceDiff; // Check if we're crossing inner or outer bounds
-        if (diff > (maxInstance - worldInstance.id) || diff < (-worldInstance.id)) 
-            loopDiff -= (diff / maxInstance) + (int)Mathf.Sign(diff);
-
-        int targetInstanceID = worldInstance.id - instanceDiff;
-        if (targetInstanceID >= numberOfInstances) targetInstanceID -= numberOfInstances;
-        else if (targetInstanceID < 0) targetInstanceID += numberOfInstances;
-
-        WorldInstance instance = wrapper.worldInstances[targetInstanceID];
-        int targetLoop = worldInstance.loop + loopDiff - (worldInstance.loop - instance.loop);
-        Element target = instance.stars[targetID];
-        LinkTo(target, targetLoop);
+        CircuitManager.instance.CheckCircuit(target);
     }
 
     public void UpdateLinks() {
-        int myLoop = wrapper.currentInstance.loop;
-        if (anchored) {
-            int instanceID = wrapper.currentInstance.id - anchorInstanceOffset;
-            if (instanceID >= wrapper.numberOfInstances) instanceID -= wrapper.numberOfInstances;
-            else if (instanceID < 0) instanceID += wrapper.numberOfInstances;
-            myLoop = wrapper.worldInstances[instanceID].loop;
-        }
-        if (links.Count > 0) UpdateOriginPoints(myLoop);
-        if (targeted.Count > 0) UpdateTargetPoints(myLoop);
+        if (links.Count > 0) UpdateOriginPoints();
+        if (targeted.Count > 0) UpdateTargetPoints();
     }
 
-    void UpdateOriginPoints(int myLoop) {
+    void UpdateOriginPoints() {
         foreach (Link link in links)
-            link.originLoop = link.isVisible ? myLoop : link.originLoop;
+            link.originLoop = link.isVisible ? wrapper.currentInstance.loop : link.originLoop;
     }
 
-    void UpdateTargetPoints(int myLoop) {
+    void UpdateTargetPoints() {
         foreach (Link link in targeted)
-            link.targetLoop = link.isVisible ? myLoop : link.targetLoop;
+            link.targetLoop = link.isVisible ? wrapper.currentInstance.loop : link.targetLoop;
     }
 
     public void DestroyAllLinks() {
@@ -442,11 +406,8 @@ public abstract class Element : MonoBehaviour {
     }
 
     void AnchorClones() {
-        anchorInstanceOffset = 0;
-        foreach (Star clone in clones) {
+        foreach (Star clone in clones)
             clone.anchored = true;
-            clone.anchorInstanceOffset = worldInstance.id - clone.worldInstance.id;
-        }
     }
 
     void MoveClones() {
@@ -457,22 +418,6 @@ public abstract class Element : MonoBehaviour {
     void ReleaseClones() {
         foreach (Star clone in clones)
             clone.anchored = false;
-    }
-
-    void LinkClones(int targetID, int instanceDiff, int loopDiff) {
-        foreach(Star clone in clones)
-            clone.AutoLink(targetID, instanceDiff, loopDiff);
-    }
-
-    public void DestroyCloneLink(int targetID) {
-        foreach(Star clone in clones) {
-            foreach(Link link in clone.links) {
-                if (link.target.id == targetID) {
-                    link.BreakLink(false);
-                    break;
-                }
-            }
-        }
     }
 
     void RecolorClones() {

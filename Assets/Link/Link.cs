@@ -9,6 +9,7 @@ public class Link : MonoBehaviour {
     #region Public Properties
 
     public GameObject stringParticle;
+    public GameObject cursorSpeed;
 
     [Header("Line Renderer Properties"), SerializeField, Tooltip("The start and end width of the line renderer")]
     float _width = 0.5f;
@@ -26,29 +27,8 @@ public class Link : MonoBehaviour {
     [Header("Link Properties")]
     public Element origin;
     public Element target;
-
-    [SerializeField]
-    int _originLoop = 0, _targetLoop = 0;
-
-    public int originLoop {
-        get { return repeatable && target.isActive ? originWorldLoop : _originLoop; }
-        set {
-            if (_originLoop != value && animated && target)
-                _targetLoop = originWorldLoop - loopDifference;
-            _originLoop = value;
-            loopDifference = _originLoop - _targetLoop;
-        }
-    }
-    public int targetLoop {
-        get { return repeatable && target.isActive ? originWorldLoop - loopDifference : _targetLoop; }
-        set {
-            if (_targetLoop != value && animated) 
-                _originLoop = originWorldLoop;
-            _targetLoop = value;
-            loopDifference = _originLoop - _targetLoop;
-        }
-    }
-
+    public int originLoop;
+    public int targetLoop;
     public List<Prism> prismToOrigin;
     public List<Prism> prismToTarget;
     public bool connected;
@@ -88,7 +68,7 @@ public class Link : MonoBehaviour {
     LineRenderer line;
     BoxCollider col;
     bool destroyed, repeatable;
-    int loopDifference;
+    float loopDifference;
 
     float startWidth {
         get {
@@ -101,62 +81,32 @@ public class Link : MonoBehaviour {
         }
     }
 
-    WorldWrapper wrapper;
     WorldInstance worldInstance {
         get { return origin.worldInstance; }
     }
 
-    int originWorldLoop {
-        get {
-            WorldInstance instance = worldInstance;
-            if (origin.isHeld)
-                instance = wrapper.currentInstance;
-            else if (origin.anchored) {
-                int instanceID = wrapper.currentInstance.id - origin.anchorInstanceOffset;
-                if (instanceID >= wrapper.numberOfInstances) instanceID -= wrapper.numberOfInstances;
-                else if (instanceID < 0) instanceID += wrapper.numberOfInstances;
-                instance = wrapper.worldInstances[instanceID];
-            }
-            return instance.loop;
-        }
-    }
-    int targetWorldLoop {
-        get {
-            WorldInstance instance = target.worldInstance;
-            if (target.isHeld)
-                instance = wrapper.currentInstance;
-            else if (target.anchored) {
-                int instanceID = wrapper.currentInstance.id - target.anchorInstanceOffset;
-                if (instanceID >= wrapper.numberOfInstances) instanceID -= wrapper.numberOfInstances;
-                else if (instanceID < 0) instanceID += wrapper.numberOfInstances;
-                instance = wrapper.worldInstances[instanceID];
-            }
-            return instance.loop;
-        }
-    }
-
     Vector3 originPosition {
         get {
-            return GetMetaPosition(origin.transform.position, ref originMetaPos, originLoop, originWorldLoop);
+            bool moving = origin.isHeld || origin.anchored;
+            int worldLoop = moving ? WorldWrapper.singleton.currentInstance.loop : worldInstance.loop;
+            return GetMetaPosition(origin.transform.position, ref originMetaPos, originLoop, worldLoop);
         }
     }
     Vector3 targetPosition {
         get {
-            return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, targetWorldLoop);
+            bool moving = target.isHeld || target.anchored;
+            int worldLoop = moving ? WorldWrapper.singleton.currentInstance.loop : target.worldInstance.loop;
+            return GetMetaPosition(target.transform.position, ref targetMetaPos, targetLoop, worldLoop);
         }
     }
 
     float screenDepth;
 
     ParticleSystem stringParticlePs;
-    float cursorSpeedF {
-        get { return cursorSpeed.speed; }
-    }
+    float cursorSpeedF;
 
     protected AudioSource MySound;
     SoundManager soundManager;
-
-    CursorSpeedScript cursorSpeed;
 
     #endregion
 
@@ -165,7 +115,6 @@ public class Link : MonoBehaviour {
     #region MonoBehaviour Functions
 
     void Start() {
-        wrapper = WorldWrapper.singleton;
         line = GetComponent<LineRenderer>();
         line.sharedMaterial = mat;
         origin = transform.parent.GetComponent<Element>();
@@ -175,7 +124,7 @@ public class Link : MonoBehaviour {
         transform.localPosition = Vector3.zero;
         screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
         gameObject.layer = 2;
-        cursorSpeed = GameObject.Find("CursorSpeed").GetComponent<CursorSpeedScript>();
+        cursorSpeed = GameObject.Find("CursorSpeed");
         MySound = GetComponent<AudioSource>();
         soundManager = SoundManager.singleton;
     }
@@ -184,11 +133,27 @@ public class Link : MonoBehaviour {
         SetStartPostion(originPosition);
         
         gameObject.layer = Mouse.breakLinkMode || Mouse.isHoldingPrism ? 0 : 2;
-        
+
         if (connected) {
             transform.position = originPosition; // sometimes infinity
 
-            if (!animated) Animate();
+            if (!animated) {
+                SetEndColor();
+                int vertices = (int)(length / segmentLength);
+                line.numPositions = vertices;
+
+                for (int currentVertice = 1; currentVertice < vertices; currentVertice++) {
+                    float step = (float)currentVertice / (float)vertices;
+                    Vector3 pos = Vector3.Lerp(originPosition, targetPosition, step);
+                    pos += transform.up * Mathf.Sin(Time.time * waveSpeed + currentVertice * waveLength) * waveHeight * (1 - Mathf.Abs(step - 0.5f)*2);
+                    line.SetPosition(currentVertice, pos);
+                }
+                waveHeight -= Time.deltaTime/waveDuration;
+                if (waveHeight <= 0) {
+                    animated = true;
+                    line.numPositions = 2;
+                }
+            }
             
             SetEndPosition(targetPosition);
             SetCollider();
@@ -200,11 +165,43 @@ public class Link : MonoBehaviour {
             SetEndPosition(mouseWorldPos);
         }
     }
+    
+    void Update()
+    {
+        cursorSpeedF = cursorSpeed.GetComponent<CursorSpeedScript>().speed;
+    }
 
     void OnMouseEnter() {
 
-        if (Mouse.holding != null && Mouse.holding != origin && Mouse.holding != target)
-            PlayMusic();
+        //Links as musical strings - works only when holding a prism
+        if (Mouse.holding != null && Mouse.holding != origin && Mouse.holding != target && waveHeight <= 0.1f)
+        { //Particles
+            stringParticlePs = stringParticle.GetComponent<ParticleSystem>();
+            var stringParticlePsMain = stringParticlePs.main;
+            var stringParticlePsColor = stringParticlePs.colorOverLifetime;
+			stringParticlePsMain.startSpeed = Mathf.Sqrt(cursorSpeedF + 1) * 2f;
+            Gradient grad = new Gradient();
+            grad.SetKeys(new GradientColorKey[] { new GradientColorKey(GetComponent<LineRenderer>().startColor, 0.0f), new GradientColorKey(GetComponent<LineRenderer>().endColor, 1.0f) }, new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(1.0f, 1.0f) });
+            stringParticlePsColor.color = grad;
+            Instantiate(stringParticle, Mouse.holding.GetComponent<Transform>().position, Quaternion.identity);
+
+            //wave
+            //float linkLength = Vector3.Distance(origin.transform.position, target.transform.position); //length of link
+            animated = false;
+			waveHeight = Mathf.Clamp((Mathf.Sqrt(cursorSpeedF + 1)/5f) + 0.5f, 0f, 3f);
+            //waveHeight = Mathf.Clamp(waveHeight, 0f, 3f);
+            waveLength = (1/70f) * length;
+            waveSpeed = 10f + (cursorSpeedF * 2f);
+            waveDuration = 0.5f;
+
+            //Sound
+            //Sound intensity should change according to the speed at which the string is struck
+			SoundManager.singleton.Play(SoundManager.singleton.stringSound, Mathf.Clamp(Mathf.Sqrt(cursorSpeedF + 1f) / 10f, 0.1f, 1f), MySound);
+            //Sound should be high or low depending on the string's size
+			MySound.pitch = Mathf.Clamp(1 / (length * 0.1f), 0.2f, 2f);
+            //MySound.pitch = Mathf.Clamp(MySound.pitch, 0.3f, 1.7f);
+            //The color of the string (link) should also impact the sound (maybe ?)
+        }
 
         if (Mouse.holding && Mouse.holding != target && Mouse.holding != origin &&
             Mouse.holding.GetComponent<Prism>()) {
@@ -212,8 +209,9 @@ public class Link : MonoBehaviour {
             Mouse.hover = this;
         }
 
-        if (Mouse.breakLinkMode && !destroyed && isVisible)
+        if (Mouse.breakLinkMode && !destroyed && isVisible) {
             BreakLink();
+        }
     }
 
     void OnMouseExit() {
@@ -234,8 +232,7 @@ public class Link : MonoBehaviour {
         connected = true;
         target.targeted.Add(this);
         origin.links.Add(this);
-        if (Mouse.link == this) Mouse.link = null;
-        if (Mouse.linking == origin) Mouse.linking = null;
+        Mouse.link = null;
         CircuitManager.instance.CheckCircuit(target);
         SetExistence();
     }
@@ -252,6 +249,8 @@ public class Link : MonoBehaviour {
             } else if (start == Existence.substracted || end == Existence.substracted) {
                 existence = Existence.substracted;
             }
+            // the link is repeatable
+            // difference between loops
             repeatable = true;
             loopDifference = originLoop - targetLoop;
         }
@@ -260,9 +259,15 @@ public class Link : MonoBehaviour {
     void SetCollider() {
         transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
-        float colWidth = width + (0.6f * Mathf.Sqrt(Mathf.Max(0, cursorSpeedF - 1f)));
-        print(width + " + (0.6f * Mathf.Sqrt(" + cursorSpeedF + "-1f) = " + colWidth);
-        col.size = new Vector3(colWidth, colWidth, length);
+        if (cursorSpeedF <= 2f)
+        {
+            col.size = new Vector3(width, width, length);
+        }
+        else
+        {
+            col.size = new Vector3(Mathf.Sqrt(cursorSpeedF * 0.5f) - (1 - width), Mathf.Sqrt(cursorSpeedF * 0.5f) - (1 - width), length);
+        }
+        //Debug.Log(col.size);
     }
 
     void SetStartPostion(Vector3 pos) {
@@ -301,88 +306,14 @@ public class Link : MonoBehaviour {
         line.endColor = target.chroma.color;
     }
 
-    /// <summary>
-    /// Returns the position of a point given the loop it is in and the current world loop.
-    /// </summary>
-    /// <param name="point"> The world position of the desired point. </param>
-    /// <param name="loop"> The loop of the desired point. </param>
-    /// <param name="worldLoop"> The loop of the world instance containing the desired point. </param>
-    /// <returns> The actual world position the point is at. </returns>
-    Vector3 GetMetaPosition(Vector3 point, ref MetaPosition pos, int loop, int worldLoop) {
-        if (worldLoop > loop) {
-            pos = MetaPosition.External;
-            return point.normalized * 1000; // Float approximation, not the best method
-        } else if (worldLoop < loop) {
-            pos = MetaPosition.Internal;
-            return Vector3.zero;
-        } else {
-            pos = MetaPosition.InRange;
-            return point;
-        }
-    }
-
-    #endregion
-
-    #region Miscellanous Functions
-
-    void Animate() {
-        SetEndColor();
-        int vertices = Mathf.Max(2, (int)(length / segmentLength));
-        line.numPositions = vertices;
-
-        for (int currentVertice = 1; currentVertice < vertices; currentVertice++) {
-            float step = (float)currentVertice / (float)vertices;
-            Vector3 pos = Vector3.Lerp(originPosition, targetPosition, step);
-            pos += transform.up * Mathf.Sin(Time.time * waveSpeed + currentVertice * waveLength) * waveHeight * (1 - Mathf.Abs(step - 0.5f) * 2);
-            line.SetPosition(currentVertice, pos);
-        }
-        waveHeight -= Time.deltaTime / waveDuration;
-        if (waveHeight <= 0) {
-            animated = true;
-            line.numPositions = 2;
-        }
-    }
-
-    //Links as musical strings - works only when holding a prism
-    void PlayMusic() {
-        //Particles
-        stringParticlePs = stringParticle.GetComponent<ParticleSystem>();
-        var stringParticlePsMain = stringParticlePs.main;
-        var stringParticlePsColor = stringParticlePs.colorOverLifetime;
-        stringParticlePsMain.startSpeed = 3f * cursorSpeedF;
-        Gradient grad = new Gradient();
-        grad.SetKeys(new GradientColorKey[] { new GradientColorKey(GetComponent<LineRenderer>().startColor, 0.0f), new GradientColorKey(GetComponent<LineRenderer>().endColor, 1.0f) }, new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(1.0f, 1.0f) });
-        stringParticlePsColor.color = grad;
-        Instantiate(stringParticle, Mouse.holding.GetComponent<Transform>().position, Quaternion.identity);
-
-        //wave
-        animated = false;
-        waveHeight = (cursorSpeedF / 5f) + 0.5f;
-        waveHeight = Mathf.Clamp(waveHeight, 0f, 3f);
-        waveLength = (1 / 70f) * length;
-        waveSpeed = 10f + (cursorSpeedF * 2f);
-        waveDuration = 0.5f;
-
-        //Sound
-        //Sound intensity should change according to the speed at which the string is struck
-        soundManager.Play(soundManager.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 2f), MySound);
-        //Sound should be high or low depending on the string's size
-        MySound.pitch = 1 / (length * 0.1f);
-        MySound.pitch = Mathf.Clamp(MySound.pitch, 0.3f, 1.7f);
-        //The color of the string (link) should also impact the sound (change in "instrument")
-    }
-
     #endregion
 
     #region Destroy Functions
 
-    public void BreakLink(bool destroyClones = true) {
+    public void BreakLink() {
         destroyed = true;
 
-        if (repeatable && destroyClones)
-            origin.DestroyCloneLink(target.id);
-
-        ParticleSystem ps = GetComponentInChildren<ParticleSystem>() ?? null;
+        ParticleSystem ps = GetComponentInChildren<ParticleSystem>();
         SetParticleSystem(ps);
         ps.Play();
 
@@ -403,4 +334,23 @@ public class Link : MonoBehaviour {
 
     #endregion
 
+    /// <summary>
+    /// Returns the position of a point given the loop it is in and the current world loop.
+    /// </summary>
+    /// <param name="point"> The world position of the desired point. </param>
+    /// <param name="loop"> The loop of the desired point. </param>
+    /// <param name="worldLoop"> The loop of the world instance containing the desired point. </param>
+    /// <returns> The actual world position the point is at. </returns>
+    Vector3 GetMetaPosition(Vector3 point, ref MetaPosition pos, int loop, int worldLoop) {
+        if (worldLoop > loop) {
+            pos = MetaPosition.External;
+            return point.normalized * 1000; // Float approximation, not the best method
+        } else if (worldLoop < loop) {
+            pos = MetaPosition.Internal;
+            return Vector3.zero;
+        } else {
+            pos = MetaPosition.InRange;
+            return point;
+        }
+    }
 }
