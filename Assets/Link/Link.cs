@@ -33,7 +33,7 @@ public class Link : MonoBehaviour {
     public int originLoop {
         get { return repeatable && target.isActive ? originWorldLoop : _originLoop; }
         set {
-            if (_originLoop != value && animated && target)
+            if (_originLoop != value && doneAnimated && target)
                 _targetLoop = originWorldLoop - loopDifference;
             _originLoop = value;
             loopDifference = _originLoop - _targetLoop;
@@ -42,7 +42,7 @@ public class Link : MonoBehaviour {
     public int targetLoop {
         get { return repeatable && target.isActive ? originWorldLoop - loopDifference : _targetLoop; }
         set {
-            if (_targetLoop != value && animated) 
+            if (_targetLoop != value && doneAnimated) 
                 _originLoop = originWorldLoop;
             _targetLoop = value;
             loopDifference = _originLoop - _targetLoop;
@@ -77,7 +77,7 @@ public class Link : MonoBehaviour {
     float waveHeight = 1.5f;
     [SerializeField]
     float waveLength = 0.3f, waveDuration = 0.2f, waveSpeed = 60;
-    bool animated;
+    bool doneAnimated;
 
     #endregion
 
@@ -107,32 +107,23 @@ public class Link : MonoBehaviour {
     }
 
     int originWorldLoop {
-        get {
-            WorldInstance instance = worldInstance;
-            if (origin.isHeld)
-                instance = wrapper.currentInstance;
-            else if (origin.anchored) {
-                int instanceID = wrapper.currentInstance.id - origin.anchorInstanceOffset;
-                if (instanceID >= wrapper.numberOfInstances) instanceID -= wrapper.numberOfInstances;
-                else if (instanceID < 0) instanceID += wrapper.numberOfInstances;
-                instance = wrapper.worldInstances[instanceID];
-            }
-            return instance.loop;
-        }
+        get { return GetWorldLoop(origin); }
     }
     int targetWorldLoop {
-        get {
-            WorldInstance instance = target.worldInstance;
-            if (target.isHeld)
-                instance = wrapper.currentInstance;
-            else if (target.anchored) {
-                int instanceID = wrapper.currentInstance.id - target.anchorInstanceOffset;
-                if (instanceID >= wrapper.numberOfInstances) instanceID -= wrapper.numberOfInstances;
-                else if (instanceID < 0) instanceID += wrapper.numberOfInstances;
-                instance = wrapper.worldInstances[instanceID];
-            }
-            return instance.loop;
+        get { return GetWorldLoop(target); }
+    }
+
+    int GetWorldLoop(Element element) {
+        WorldInstance instance = element.worldInstance;
+        if (element.isHeld)
+            instance = wrapper.currentInstance;
+        else if (element.anchored) {
+            int instanceID = wrapper.currentInstance.id - element.anchorInstanceOffset;
+            if (instanceID >= wrapper.numberOfInstances) instanceID -= wrapper.numberOfInstances;
+            else if (instanceID < 0) instanceID += wrapper.numberOfInstances;
+            instance = wrapper.worldInstances[instanceID];
         }
+        return instance.loop;
     }
 
     Vector3 originPosition {
@@ -188,7 +179,7 @@ public class Link : MonoBehaviour {
         if (connected) {
             transform.position = originPosition; // sometimes infinity
 
-            if (!animated) Animate();
+            if (!doneAnimated) Animate();
             
             SetEndPosition(targetPosition);
             SetCollider();
@@ -261,7 +252,6 @@ public class Link : MonoBehaviour {
         transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
         float colWidth = width + (0.6f * Mathf.Sqrt(Mathf.Max(0, cursorSpeedF - 1f)));
-        print(width + " + (0.6f * Mathf.Sqrt(" + cursorSpeedF + "-1f) = " + colWidth);
         col.size = new Vector3(colWidth, colWidth, length);
     }
 
@@ -338,7 +328,7 @@ public class Link : MonoBehaviour {
         }
         waveHeight -= Time.deltaTime / waveDuration;
         if (waveHeight <= 0) {
-            animated = true;
+            doneAnimated = true;
             line.numPositions = 2;
         }
     }
@@ -356,7 +346,7 @@ public class Link : MonoBehaviour {
         Instantiate(stringParticle, Mouse.holding.GetComponent<Transform>().position, Quaternion.identity);
 
         //wave
-        animated = false;
+        doneAnimated = false;
         waveHeight = (cursorSpeedF / 5f) + 0.5f;
         waveHeight = Mathf.Clamp(waveHeight, 0f, 3f);
         waveLength = (1 / 70f) * length;

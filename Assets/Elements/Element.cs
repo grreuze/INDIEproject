@@ -228,7 +228,8 @@ public abstract class Element : MonoBehaviour {
     void GetWorldInstance() {
         worldTransform = transform.parent;
         worldInstance = worldTransform.GetComponent<WorldInstance>();
-        worldInstance.stars[id] = GetComponent<Star>() ?? worldInstance.stars[id];
+        if (existence != Existence.unique)
+            worldInstance.stars[id] = GetComponent<Star>() ?? worldInstance.stars[id];
     }
 
     /// <summary>
@@ -353,12 +354,24 @@ public abstract class Element : MonoBehaviour {
     }
 
     public void UpdateLinks() {
+        if (targeted.Count + links.Count == 0) return;
         int myLoop = wrapper.currentInstance.loop;
         if (anchored) {
+            int numberOfInstances = wrapper.numberOfInstances;
             int instanceID = wrapper.currentInstance.id - anchorInstanceOffset;
-            if (instanceID >= wrapper.numberOfInstances) instanceID -= wrapper.numberOfInstances;
-            else if (instanceID < 0) instanceID += wrapper.numberOfInstances;
-            myLoop = wrapper.worldInstances[instanceID].loop;
+            int loopModifier = 0;
+            if (instanceID >= numberOfInstances) {
+                loopModifier = -(instanceID / numberOfInstances); // outer bounds
+                print(anchorInstanceOffset + " & " + instanceID);
+                print("star[" + id + "] (" + worldInstance.id + ") outer loopModifier: " + loopModifier + " (" + (instanceID - numberOfInstances) + "/" + numberOfInstances);
+                instanceID -= numberOfInstances;
+            } else if (instanceID < 0) {
+                loopModifier = (-instanceID / numberOfInstances) + 1; // inner bounds
+                print(instanceID);
+                print("star[" + instanceID + "] (" + worldInstance.id + ") inner loopModifier: " + loopModifier + " (" + instanceID + "/" + numberOfInstances);
+                instanceID += numberOfInstances;
+            }
+            myLoop = wrapper.worldInstances[instanceID].loop + loopModifier;
         }
         if (links.Count > 0) UpdateOriginPoints(myLoop);
         if (targeted.Count > 0) UpdateTargetPoints(myLoop);
@@ -442,10 +455,12 @@ public abstract class Element : MonoBehaviour {
     }
 
     void AnchorClones() {
+        anchored = false;
         anchorInstanceOffset = 0;
         foreach (Star clone in clones) {
             clone.anchored = true;
             clone.anchorInstanceOffset = worldInstance.id - clone.worldInstance.id;
+            print("set offset: " + clone.anchorInstanceOffset);
         }
     }
 
