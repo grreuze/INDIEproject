@@ -30,22 +30,60 @@ public class Link : MonoBehaviour {
     [SerializeField]
     int _originLoop = 0, _targetLoop = 0;
 
+    public int loopDifference;
+    int instancesLoopDifference = 0, lastInstancesLoopDifference = 0; // loop difference between visible instances
+
     public int originLoop {
         get { return repeatable && target.isActive ? originWorldLoop : _originLoop; }
         set {
-            if (_originLoop != value && doneAnimated && target)
-                _targetLoop = originWorldLoop - loopDifference;
+            if (doneAnimated) {
+                instancesLoopDifference = originWorldLoop - targetWorldLoop;
+                if (originMetaPos == MetaPosition.Internal) instancesLoopDifference++;
+                else if (originMetaPos == MetaPosition.External) instancesLoopDifference--;
+                
+                if (_originLoop != value || instancesLoopDifference != lastInstancesLoopDifference) {
+
+                    int baseLoop = instancesLoopDifference == 0 && targetMetaPos == MetaPosition.InRange ? originWorldLoop : value - loopDifference;
+
+                    if (instancesLoopDifference != lastInstancesLoopDifference) {
+                        name += " target-" + instancesLoopDifference + "+" + lastInstancesLoopDifference;
+                        print("Target Loop: " + _targetLoop + " => " + (baseLoop - loopDifference) + " - " + instancesLoopDifference + "+" + lastInstancesLoopDifference);
+                    }
+                    print("Target Loop changed from origin, from " + _targetLoop + " to " + (baseLoop - loopDifference - instancesLoopDifference + lastInstancesLoopDifference) + " Origin Loop: " + _originLoop + " => " + value);
+                    _targetLoop = baseLoop - loopDifference - instancesLoopDifference + lastInstancesLoopDifference;
+                }
+            }
             _originLoop = value;
             loopDifference = _originLoop - _targetLoop;
+            //print("From Origin: Origin Loop is now " + _originLoop + " Target Loop is " + _targetLoop + " Difference is " + loopDifference);
+            lastInstancesLoopDifference = instancesLoopDifference;
         }
     }
     public int targetLoop {
         get { return repeatable && target.isActive ? originWorldLoop - loopDifference : _targetLoop; }
         set {
-            if (_targetLoop != value && doneAnimated) 
-                _originLoop = originWorldLoop;
+            if (doneAnimated) {
+                instancesLoopDifference = originWorldLoop - targetWorldLoop;
+                if (targetMetaPos == MetaPosition.External) instancesLoopDifference++;
+                else if (targetMetaPos == MetaPosition.Internal) instancesLoopDifference--;
+                
+                if (_targetLoop != value || instancesLoopDifference != lastInstancesLoopDifference) {
+
+                    int baseLoop = instancesLoopDifference == 0 && targetMetaPos == MetaPosition.InRange ? originWorldLoop : value + loopDifference;
+
+                    if (instancesLoopDifference != lastInstancesLoopDifference) {
+                        name += " origin+" + instancesLoopDifference + "-" + lastInstancesLoopDifference;
+                        print("Origin Loop: " + _originLoop + " => " + baseLoop + " + " + instancesLoopDifference + "-" + lastInstancesLoopDifference);
+                    }
+                    print("Origin Loop changed from target, from " + _originLoop + " to " + (baseLoop + instancesLoopDifference - lastInstancesLoopDifference) + " Target Loop: " + _targetLoop + " => " + value);
+                    _originLoop = baseLoop + instancesLoopDifference - lastInstancesLoopDifference;
+                }
+            }
+
             _targetLoop = value;
             loopDifference = _originLoop - _targetLoop;
+            //print("From Target: Origin Loop is now " + _originLoop + " Target Loop is " + _targetLoop + " Difference is " + loopDifference);
+            lastInstancesLoopDifference = instancesLoopDifference;
         }
     }
 
@@ -53,6 +91,7 @@ public class Link : MonoBehaviour {
     public List<Prism> prismToTarget;
     public bool connected;
     public Existence existence;
+    public MetaPosition originMetaPos, targetMetaPos;
     [SerializeField]
     bool adjustWidth;
 
@@ -83,12 +122,9 @@ public class Link : MonoBehaviour {
 
     #region Private Properties
 
-    enum MetaPosition { InRange, External, Internal }
-    MetaPosition originMetaPos, targetMetaPos;
     LineRenderer line;
     BoxCollider col;
     bool destroyed, repeatable;
-    int loopDifference;
 
     float startWidth {
         get {
@@ -149,6 +185,18 @@ public class Link : MonoBehaviour {
 
     CursorSpeedScript cursorSpeed;
 
+    /// <summary>
+    /// Whether or not this link has collisions activated. If false, sets itself to 'Ignore Raycast' layer.
+    /// </summary>
+    bool collisions {
+        set {
+            gameObject.layer = value ? 0 : 2;
+            if (!value) col.size = Vector3.one * 0.1f;
+        } get {
+            return gameObject.layer == 0;
+        }
+    }
+
     #endregion
 
     #endregion
@@ -174,16 +222,13 @@ public class Link : MonoBehaviour {
     void LateUpdate() { // We should change it so that links only update when necessary
         SetStartPostion(originPosition);
         
-        gameObject.layer = Mouse.breakLinkMode || Mouse.isHoldingPrism ? 0 : 2;
+        collisions = Mouse.breakLinkMode || Mouse.isHoldingPrism; // Only have collisions if we're breaking links or holding a prism
         
         if (connected) {
             transform.position = originPosition; // sometimes infinity
-
             if (!doneAnimated) Animate();
-            
             SetEndPosition(targetPosition);
-            SetCollider();
-
+            if (collisions) SetCollider(); // Only set collider if we have collisions
             if (adjustWidth) SetWidth(startWidth, endWidth);
 
         } else {
@@ -228,6 +273,7 @@ public class Link : MonoBehaviour {
         if (Mouse.link == this) Mouse.link = null;
         if (Mouse.linking == origin) Mouse.linking = null;
         CircuitManager.instance.CheckCircuit(target);
+        instancesLoopDifference = originWorldLoop - targetWorldLoop;
         SetExistence();
     }
 
@@ -251,7 +297,7 @@ public class Link : MonoBehaviour {
     void SetCollider() {
         transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
-        float colWidth = width + (0.6f * Mathf.Sqrt(Mathf.Max(0, cursorSpeedF - 1f)));
+        float colWidth = width + (0.1f * Mathf.Sqrt(Mathf.Max(0, cursorSpeedF - 1f)));
         col.size = new Vector3(colWidth, colWidth, length);
     }
 
@@ -372,6 +418,7 @@ public class Link : MonoBehaviour {
         if (repeatable && destroyClones)
             origin.DestroyCloneLink(target.id);
 
+        if (this == null) return;
         ParticleSystem ps = GetComponentInChildren<ParticleSystem>() ?? null;
         SetParticleSystem(ps);
         ps.Play();
@@ -394,3 +441,5 @@ public class Link : MonoBehaviour {
     #endregion
 
 }
+
+public enum MetaPosition { InRange, External, Internal }

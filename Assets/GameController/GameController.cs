@@ -14,7 +14,10 @@ public class GameController : MonoBehaviour {
 
     public float screenCenterMargin = 20;
     public float screenBorderMargin = 10;
-    public float zoomSpeed, zoomStopSpeed;
+    public float zoomMaxSpeed, zoomIncrementation, zoomDecrementation;
+
+    [SerializeField]
+    AnimationCurve zoomExponent;
 
     public bool gameStarted = false;
 
@@ -113,24 +116,24 @@ public class GameController : MonoBehaviour {
         if (!isDragging && (Input.mousePosition.x > (Screen.width / 2) - screenCenterMargin && Input.mousePosition.x < (Screen.width / 2) + screenCenterMargin
             && Input.mousePosition.y > (Screen.height / 2) - screenCenterMargin && Input.mousePosition.y < (Screen.height / 2) + screenCenterMargin))
         {
-            zoomValue += zoomValue >= 1 ? 0 : Time.deltaTime * zoomSpeed;
+            zoomValue += zoomValue >= zoomMaxSpeed ? 0 : Time.deltaTime * zoomIncrementation;
             PlayZoomSound();
         }
         else if (zoomValue > 0)
         {
-            zoomValue -= Time.deltaTime * zoomStopSpeed;
+            zoomValue -= Time.deltaTime * zoomDecrementation;
             if (zoomValue < 0) zoomValue = 0;
         }
 
         if (!isDragging && (Input.mousePosition.x < screenBorderMargin || Input.mousePosition.y < screenBorderMargin ||
             Input.mousePosition.x > Screen.width - screenBorderMargin || Input.mousePosition.y > Screen.height - screenBorderMargin))
         {
-            zoomValue -= zoomValue <= -1 ? 0 : Time.deltaTime * zoomSpeed;
+            zoomValue -= zoomValue <= -zoomMaxSpeed ? 0 : Time.deltaTime * zoomIncrementation;
             PlayZoomSound();
         }
         else if (zoomValue < 0)
         {
-            zoomValue += Time.deltaTime * zoomStopSpeed;
+            zoomValue += Time.deltaTime * zoomDecrementation;
             if (zoomValue > 0) zoomValue = 0;
         }
         mainAudio.volume = Mathf.Clamp(Mathf.Abs(zoomValue), 0.2f,1f);

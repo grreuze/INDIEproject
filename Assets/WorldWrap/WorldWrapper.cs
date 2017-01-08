@@ -13,6 +13,7 @@ public class WorldWrapper : MonoBehaviour {
     public static WorldWrapper singleton;
     float minScale, maxScale;
     Universe universe;
+    Vignette vignette;
 
     /// <summary>
     /// The ID of the instance the camera is currently in.
@@ -30,6 +31,7 @@ public class WorldWrapper : MonoBehaviour {
         maxScale = scaleFactor * scaleFactor;
         minScale = 1 / maxScale;
         universe = FindObjectOfType<Universe>();
+        vignette = Camera.main.GetComponent<Vignette>();
     }
 
     public void Generate() {
@@ -60,6 +62,9 @@ public class WorldWrapper : MonoBehaviour {
     /// </summary>
     /// <param name="value"> The value of the Zoom to perform </param>
     public void Zoom(float value) {
+        if (Universe.isDone)
+            vignette.fallOff = Mathf.Abs(value) / 5;
+
         for (int i = 0; i < worldInstances.Count; i++) {
             worldInstances[i].transform.localScale += value * worldInstances[i].transform.localScale * scaleSpeed; // sometimes infinity
 

@@ -98,7 +98,6 @@ public class Star : Element {
                     shakeRequired--;
                     circleSize++;
                     Instantiate(circleParticle, transform.position, Quaternion.identity);
-                    Debug.Log("Shake performed :" + shakeRequired);
                     if (shakeRequired != 0) SoundManager.singleton.Play(SoundManager.singleton.starSound[shakeRequired - 1], 1f, MySound);
                     previousMove = currentMove;
                 }

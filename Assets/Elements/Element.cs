@@ -104,15 +104,13 @@ public abstract class Element : MonoBehaviour {
         if (!isHeld) Rescale(); // We should only rescale if zooming / dezooming / anchored
         CheckLink();
 
-        if (anchored) {
-            UpdateLinks();
-        }
+        if (anchored) UpdateLinks();
         
         if (existence == Existence.unique)
-            SetActive(existenceLoop == worldInstance.loop);
+            SetActive(existenceLoop == worldInstance.loop || isHeld);
         else
         if (existence == Existence.substracted)
-            SetActive(!substractedFrom.Contains(worldInstance.loop));
+            SetActive(!substractedFrom.Contains(worldInstance.loop) || isHeld);
     }
 
     void OnMouseEnter() {
@@ -123,8 +121,7 @@ public abstract class Element : MonoBehaviour {
 			rend.material.SetFloat ("_Atmospheric_Opacity_or_Opaque", 1);
         }
     }
-
-
+    
     void OnMouseExit() {
         if (!isHeld) StopHover();
     }
@@ -214,8 +211,8 @@ public abstract class Element : MonoBehaviour {
         StopHover();
         Mouse.holding = null;
         ChangeInstance();
-        gameObject.layer = 0;
         if (existence == Existence.cloned) ReleaseClones();
+        gameObject.layer = 0;
     }
 
     #endregion
@@ -246,7 +243,7 @@ public abstract class Element : MonoBehaviour {
     
     void ChangeInstance() {
         if (existence == Existence.unique)
-            existenceLoop = worldInstance.loop;
+            existenceLoop = wrapper.currentInstance.loop;
         int diff = wrapper.currentInstance.id - worldInstance.id;
         if (diff == 0)
             transform.parent = worldTransform;
@@ -353,38 +350,75 @@ public abstract class Element : MonoBehaviour {
         LinkTo(target, targetLoop);
     }
 
+    int loopModifier = 0;
     public void UpdateLinks() {
         if (targeted.Count + links.Count == 0) return;
         int myLoop = wrapper.currentInstance.loop;
+        MetaPosition modifier = MetaPosition.InRange;
+
         if (anchored) {
             int numberOfInstances = wrapper.numberOfInstances;
-            int instanceID = wrapper.currentInstance.id - anchorInstanceOffset;
-            int loopModifier = 0;
+            int instanceID = worldInstance.id;
+            
+            if (Mouse.holding) {
+                Mouse.holding.AnchorClones(); // ReAnchor clones just to be sure we get the right anchorInstanceOffset
+                instanceID = wrapper.currentInstance.id - anchorInstanceOffset;
+            } else {
+                print("Stopped Holding.");
+                loopModifier = 0;
+            }
+
             if (instanceID >= numberOfInstances) {
                 loopModifier = -(instanceID / numberOfInstances); // outer bounds
-                print(anchorInstanceOffset + " & " + instanceID);
-                print("star[" + id + "] (" + worldInstance.id + ") outer loopModifier: " + loopModifier + " (" + (instanceID - numberOfInstances) + "/" + numberOfInstances);
+                modifier = MetaPosition.External;
+                if (!name.EndsWith(" outer")) { //Debug
+                    print("Outer modifier: " + loopModifier);
+                    name += " outer";
+                }
                 instanceID -= numberOfInstances;
             } else if (instanceID < 0) {
                 loopModifier = (-instanceID / numberOfInstances) + 1; // inner bounds
-                print(instanceID);
-                print("star[" + instanceID + "] (" + worldInstance.id + ") inner loopModifier: " + loopModifier + " (" + instanceID + "/" + numberOfInstances);
+                modifier = MetaPosition.Internal;
+                if (!name.EndsWith(" inner")) { //Debug
+                    print("Inner modifier: " + loopModifier);
+                    name += " inner";
+                }
                 instanceID += numberOfInstances;
+            } else if (loopModifier != 0) {
+                loopModifier = -loopModifier;
+                modifier = MetaPosition.InRange;
+                if (!name.EndsWith(" back")) { //Debug
+                    print("Reverse modifier: " + loopModifier + " myLoop is " + wrapper.worldInstances[instanceID].loop + loopModifier);
+                    name += " back";
+                }
             }
+
             myLoop = wrapper.worldInstances[instanceID].loop + loopModifier;
+        } else loopModifier = 0;
+
+        if (links.Count > 0) UpdateOriginPoints(myLoop, loopModifier, modifier);
+        if (targeted.Count > 0) UpdateTargetPoints(myLoop, loopModifier, modifier);
+
+        if (loopModifier != 0 && modifier == MetaPosition.InRange) // If we reversed the previous modifier, get back to 0
+            loopModifier = 0; // Prevents reverting reverse modifiers forever
+    }
+
+    void UpdateOriginPoints(int myLoop, int loopDiff, MetaPosition metaPos) {
+        foreach (Link link in links) {
+            if (link.isVisible && (myLoop != link.originLoop || loopDiff != 0)) {
+                if (loopDiff != 0) link.originMetaPos = metaPos;
+                link.originLoop = myLoop;
+            }
         }
-        if (links.Count > 0) UpdateOriginPoints(myLoop);
-        if (targeted.Count > 0) UpdateTargetPoints(myLoop);
     }
 
-    void UpdateOriginPoints(int myLoop) {
-        foreach (Link link in links)
-            link.originLoop = link.isVisible ? myLoop : link.originLoop;
-    }
-
-    void UpdateTargetPoints(int myLoop) {
-        foreach (Link link in targeted)
-            link.targetLoop = link.isVisible ? myLoop : link.targetLoop;
+    void UpdateTargetPoints(int myLoop, int loopDiff, MetaPosition metaPos) {
+        foreach (Link link in targeted) {
+            if (link.isVisible && (myLoop != link.targetLoop || loopDiff != 0)) {
+                if (loopDiff != 0) link.targetMetaPos = metaPos;
+                link.targetLoop = myLoop;
+            }
+        }
     }
 
     public void DestroyAllLinks() {
@@ -455,12 +489,12 @@ public abstract class Element : MonoBehaviour {
     }
 
     void AnchorClones() {
+        if (existence == Existence.unique) return;
         anchored = false;
         anchorInstanceOffset = 0;
         foreach (Star clone in clones) {
             clone.anchored = true;
             clone.anchorInstanceOffset = worldInstance.id - clone.worldInstance.id;
-            print("set offset: " + clone.anchorInstanceOffset);
         }
     }
 
