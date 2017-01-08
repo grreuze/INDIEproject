@@ -272,7 +272,7 @@ public class Link : MonoBehaviour {
         origin.links.Add(this);
         if (Mouse.link == this) Mouse.link = null;
         if (Mouse.linking == origin) Mouse.linking = null;
-        CircuitManager.instance.CheckCircuit(target);
+        //CircuitManager.instance.CheckCircuit(target);
         instancesLoopDifference = originWorldLoop - targetWorldLoop;
         SetExistence();
     }

@@ -138,7 +138,17 @@ public abstract class Element : MonoBehaviour {
     public void ApplyChroma() {
         Recolor();
         if (GetComponent<Star>()) Debug.Log(chroma);
+        if (existence == Existence.cloned) RecolorClones();
+    }
 
+    void Recolor() {
+        chroma.ReBalance();
+        rend.sharedMaterial = mat;
+        outlineColor = chroma.color == Color.white ? outlineColorWhenChromaIsWhite : chroma.color;
+        RecolorLinks();
+    }
+
+    void RecolorLinks() {
         foreach (Link link in links) {// Links I am the origin of
             if (link.prismToTarget.Count > 0) link.prismToTarget[0].UpdateTargetColor();
             link.SetStartColor();
@@ -147,14 +157,6 @@ public abstract class Element : MonoBehaviour {
             if (link.prismToOrigin.Count > 0) link.prismToOrigin[0].UpdateTargetColor();
             link.SetEndColor();
         }
-        
-        if (existence == Existence.cloned) RecolorClones();
-    }
-
-    void Recolor() {
-        chroma.ReBalance();
-        rend.sharedMaterial = mat;
-        outlineColor = chroma.color == Color.white ? outlineColorWhenChromaIsWhite : chroma.color;
     }
 
     public void VertexPing() {

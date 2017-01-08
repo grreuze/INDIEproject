@@ -70,8 +70,10 @@ public class GameController : MonoBehaviour {
     #region Input Controls
 
     void KeyboardControls() {
-        if (Input.GetAxis("Horizontal") != 0)
+        if (Input.GetAxis("Horizontal") != 0) {
+            StopAllCoroutines();
             pitch = Input.GetAxis("Horizontal") * xSpeed * 0.02f;
+        }
 
         if (Input.GetAxis("Vertical") != 0)
             wrapper.Zoom(Input.GetAxis("Vertical"));
