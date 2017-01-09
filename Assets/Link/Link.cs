@@ -17,9 +17,8 @@ public class Link : MonoBehaviour {
     }
     [SerializeField]
     float segmentLength = 0.4f;
-
-    [SerializeField]
-    Material mat;
+    
+    public Material mat;
     [SerializeField]
     Material hoverMat;
 
@@ -221,6 +220,8 @@ public class Link : MonoBehaviour {
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
+        if (destroyed) return;
+
         SetStartPostion(originPosition);
         
         collisions = Mouse.breakLinkMode || Mouse.isHoldingPrism; // Only have collisions if we're breaking links or holding a prism
@@ -433,7 +434,7 @@ public class Link : MonoBehaviour {
             prism.attachedLink = null;
         foreach (Prism prism in prismToTarget)
             prism.attachedLink = null;
-        Invoke("DestroyLink", ps.main.startLifetime.constant);
+        Invoke("DestroyLink", ps.main.startLifetime.constant); //Destroy the link when the Particle System is over
     }
 
     void DestroyLink() {

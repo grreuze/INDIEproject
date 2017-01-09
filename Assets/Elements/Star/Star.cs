@@ -36,7 +36,7 @@ public class Star : Element {
         }
         lastClick = Time.time;
     }
-    
+
     void BreakStar() {
         StopHold();
         DestroyAllLinks();

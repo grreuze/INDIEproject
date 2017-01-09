@@ -93,10 +93,9 @@ public abstract class Element : MonoBehaviour {
         
         if (!wrapper) wrapper = WorldWrapper.singleton;
         GetWorldInstance();
-        if (existence == Existence.cloned)
-            GetAllClones();
         if (existence == Existence.unique)
             existenceLoop = worldInstance.loop;
+        else GetAllClones();
     }
 
     void Update() {
@@ -106,6 +105,9 @@ public abstract class Element : MonoBehaviour {
 
         if (anchored) UpdateLinks();
         
+        if (existence != Existence.unique && orbiting && walker) // if we're the original orbiting
+            MoveClones();
+
         if (existence == Existence.unique)
             SetActive(existenceLoop == worldInstance.loop || isHeld);
         else
@@ -137,8 +139,8 @@ public abstract class Element : MonoBehaviour {
 
     public void ApplyChroma() {
         Recolor();
-        if (GetComponent<Star>()) Debug.Log(chroma);
-        if (existence == Existence.cloned) RecolorClones();
+        //if (GetComponent<Star>()) Debug.Log(chroma);
+        if (existence != Existence.unique) RecolorClones();
     }
 
     void Recolor() {
@@ -198,14 +200,20 @@ public abstract class Element : MonoBehaviour {
     }
 
     public virtual void StartHold() {
+        if (orbiting) {
+            StopOrbit();
+            if (existence != Existence.unique)
+                StopOrbitClones();
+        }
+
         Mouse.holding = this;
         transform.parent = null;
         gameObject.layer = 2;
-        if (existence == Existence.cloned) AnchorClones();
+        if (existence != Existence.unique) AnchorClones();
     }
 
     public virtual void MoveToMousePosition() {
-        if (existence == Existence.cloned) MoveClones();
+        if (existence != Existence.unique) MoveClones();
         float screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
         transform.position = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, screenDepth));
         UpdateLinks();
@@ -215,7 +223,7 @@ public abstract class Element : MonoBehaviour {
         StopHover();
         Mouse.holding = null;
         ChangeInstance();
-        if (existence == Existence.cloned) ReleaseClones();
+        if (existence != Existence.unique) ReleaseClones();
         gameObject.layer = 0;
     }
 
@@ -229,7 +237,9 @@ public abstract class Element : MonoBehaviour {
     void GetWorldInstance() {
         worldTransform = transform.parent;
         worldInstance = worldTransform.GetComponent<WorldInstance>();
-        if (existence != Existence.unique)
+        if (existence == Existence.unique)
+            existenceLoop = worldInstance.loop;
+        else
             worldInstance.stars[id] = GetComponent<Star>() ?? worldInstance.stars[id];
     }
 
@@ -253,7 +263,7 @@ public abstract class Element : MonoBehaviour {
             transform.parent = worldTransform;
         else {
             SetNewInstance(diff);
-            if (existence == Existence.cloned) {
+            if (existence != Existence.unique) {
                 SetNewCloneInstance(diff);
                 if (anchorInstanceOffset == 0)
                     MoveClones();
@@ -285,20 +295,32 @@ public abstract class Element : MonoBehaviour {
                 CreateLink(this);
             }
             if (Input.GetMouseButtonUp(1)) {
-                if (Mouse.linking && Mouse.linking.GetType() == GetType() && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
-                    if (existence != Existence.unique && Mouse.link.origin.existence != Existence.unique) {
-                        int instanceDifference = Mouse.link.origin.worldInstance.id - worldInstance.id;
-                        int loopDifference = Mouse.link.origin.worldInstance.loop - Mouse.link.originLoop; // number of times we've crossed boundaries
-                        Mouse.link.origin.LinkClones(id, instanceDifference, loopDifference);
+                if (Mouse.linking && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
+                    if (Mouse.linking.GetType() == GetType()) {
+                        if (existence != Existence.unique && Mouse.link.origin.existence != Existence.unique) {
+                            int instanceDifference = Mouse.link.origin.worldInstance.id - worldInstance.id;
+                            int loopDifference = Mouse.link.origin.worldInstance.loop - Mouse.link.originLoop; // number of times we've crossed boundaries
+                            Mouse.link.origin.LinkClones(id, instanceDifference, loopDifference);
+                        }
+                        Mouse.link.Connect(this);
+                    } else { // connecting a Star to a Prism, ORBIT
+                        Link link = Mouse.link;
+                        link.Connect(this);
+                        Prism prism = GetComponent<Prism>() ?? link.origin.GetComponent<Prism>();
+                        Star star = GetComponent<Star>() ?? link.origin.GetComponent<Star>();
+                        
+                        star.chroma += prism.chroma;
+                        star.ApplyChroma();
+
+                        star.Orbit(prism, link);
                     }
-                    Mouse.link.Connect(this);
                 } else {
                     Mouse.BreakLink();
                 }
             }
         }
     }
-
+    
     bool IsLinkedTo(Element element) {
         foreach (Link link in links)
             if (link.target == element) return true;
@@ -540,6 +562,18 @@ public abstract class Element : MonoBehaviour {
             clone.SetNewInstance(diff);
     }
 
+    void OrbitClones() {
+        foreach (Star clone in clones) {
+            clone.orbiting = true;
+            clone.AddLocalTrail();
+        }
+    }
+
+    void StopOrbitClones() {
+        foreach(Star clone in clones)
+            clone.StopOrbit();
+    }
+
     #endregion
 
     #region Sound Methods
@@ -607,6 +641,67 @@ public abstract class Element : MonoBehaviour {
     }
 
     #endregion
+    
+    bool orbiting;
+    BezierSpline spline;
+    SplineWalker walker;
+    LocalTrailRenderer trail;
+    void Orbit(Prism prism, Link link) {
+        int diff = worldInstance.id - prism.worldInstance.id;
+        if (diff != 0) prism.SetNewInstance(diff);
+        
+        spline = worldInstance.gameObject.AddComponent<BezierSpline>(); // we should put the splines elsewhere
+
+        spline.Reset();
+        spline.AddCurve();
+        spline.Loop = true;
+
+        spline.points[0] = spline.points[6] = transform.localPosition; // set start and end of loop here
+
+        spline.points[3] = -transform.localPosition; // set opposite point relative to center
+
+        spline.points[5] = prism.transform.localPosition; // set the prism's tangent point
+        spline.points[2] = -spline.points[5]; // set the equivalent for the opposite point
+
+        spline.SetControlPointMode(5, BezierControlPointMode.Mirrored); // Set mirrored for start tangent
+        spline.SetControlPointMode(2, BezierControlPointMode.Mirrored); // Set mirrored for opposite tangent
+
+        walker = gameObject.AddComponent<SplineWalker>();
+        walker.mode = SplineWalkerMode.Loop;
+        walker.duration = 5; // time the star takes to orbit
+        walker.spline = spline;
+
+        // Ellipse done. Add Trail:
+
+        Material mat = link.GetComponent<Renderer>().sharedMaterial;
+        AddLocalTrail();
+
+        // Done. Destroy stuff:
+
+        link.BreakLink();
+        Destroy(prism.gameObject);
+        
+        // Done.
+
+        orbiting = true;
+        if (existence != Existence.unique) OrbitClones();
+    }
+
+    void AddLocalTrail() {
+        trail = gameObject.AddComponent<LocalTrailRenderer>();
+
+        trail.material = PrefabManager.link.mat;
+        trail.startColor = trail.endColor = chroma.color;
+        trail.startWidth = 0;
+        trail.endWidth = 0.2f;
+    }
+
+    void StopOrbit() {
+        orbiting = false;
+        if (walker) Destroy(walker);
+        if (spline) Destroy(spline);
+        if (trail) Destroy(trail);
+    }
 
 }
 
