@@ -150,10 +150,12 @@ public abstract class Element : MonoBehaviour {
 
     void RecolorLinks() {
         foreach (Link link in links) {// Links I am the origin of
+            if (link == null) continue;
             if (link.prismToTarget.Count > 0) link.prismToTarget[0].UpdateTargetColor();
             link.SetStartColor();
         }
         foreach (Link link in targeted) {// Links I am the target of
+            if (link == null) continue;
             if (link.prismToOrigin.Count > 0) link.prismToOrigin[0].UpdateTargetColor();
             link.SetEndColor();
         }

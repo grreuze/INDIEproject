@@ -55,6 +55,7 @@ public class Star : Element {
     void CreatePrisms() {
         if (chroma.isPrimary) chroma *= Chroma.MAX; //If only one color, give 3 prisms instead of one
 
+        // Si deux prismes ont la même couleur, ils se retrouvent à la même position
         for (int i = 0; i < chroma.r; i++)
             CreatePrism(Chroma.red, new Vector3(0.5f, 0, 0));
         for (int i = 0; i < chroma.g; i++)

@@ -128,12 +128,12 @@ public class Link : MonoBehaviour {
 
     float startWidth {
         get {
-            return originMetaPos == MetaPosition.Internal ? 0 : origin.transform.lossyScale.x * width * transform.localScale.x;
+            return originMetaPos == MetaPosition.Internal ? 0 : _width * origin.transform.lossyScale.x;
         }
     }
     float endWidth {
         get {
-            return targetMetaPos == MetaPosition.Internal ? 0 : target.transform.lossyScale.x * width * transform.localScale.x;
+            return targetMetaPos == MetaPosition.Internal ? 0 : _width * target.transform.lossyScale.x;
         }
     }
 
@@ -209,7 +209,8 @@ public class Link : MonoBehaviour {
         line.sharedMaterial = mat;
         origin = transform.parent.GetComponent<Element>();
         col = GetComponent<BoxCollider>();
-        SetWidth(width, width);
+        if (adjustWidth) SetWidth(startWidth, startWidth);
+        else SetWidth(width, width);
         SetStartColor();
         transform.localPosition = Vector3.zero;
         screenDepth = Camera.main.WorldToScreenPoint(transform.position).z;
@@ -272,7 +273,8 @@ public class Link : MonoBehaviour {
         origin.links.Add(this);
         if (Mouse.link == this) Mouse.link = null;
         if (Mouse.linking == origin) Mouse.linking = null;
-        //CircuitManager.instance.CheckCircuit(target);
+        if(origin.GetComponent<Prism>() && target.GetComponent<Prism>())
+           CircuitManager.instance.CheckCircuit(target);
         instancesLoopDifference = originWorldLoop - targetWorldLoop;
         SetExistence();
     }
@@ -415,6 +417,9 @@ public class Link : MonoBehaviour {
     public void BreakLink(bool destroyClones = true) {
         destroyed = true;
 
+        origin.links.Remove(this);
+        target.targeted.Remove(this);
+        
         if (repeatable && destroyClones)
             origin.DestroyCloneLink(target.id);
 
@@ -428,8 +433,6 @@ public class Link : MonoBehaviour {
             prism.attachedLink = null;
         foreach (Prism prism in prismToTarget)
             prism.attachedLink = null;
-        origin.links.Remove(this);
-        target.targeted.Remove(this);
         Invoke("DestroyLink", ps.main.startLifetime.constant);
     }
 
