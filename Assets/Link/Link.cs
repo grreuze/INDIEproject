@@ -240,7 +240,7 @@ public class Link : MonoBehaviour {
 
     void OnMouseEnter() {
 
-        if (Mouse.holding != null && Mouse.holding != origin && Mouse.holding != target)
+        if (Mouse.holding != null && Mouse.holding != origin && Mouse.holding != target && waveHeight <= 0.1f)
             PlayMusic();
 
         if (Mouse.holding && Mouse.holding != target && Mouse.holding != origin &&
