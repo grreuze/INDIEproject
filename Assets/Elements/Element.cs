@@ -108,8 +108,10 @@ public abstract class Element : MonoBehaviour {
         if (existence != Existence.unique && orbiting && walker) // if we're the original orbiting
             MoveClones();
 
-        if (existence == Existence.unique)
+        if (existence == Existence.unique) {
             SetActive(existenceLoop == worldInstance.loop || isHeld);
+            if (trail) trail.enabled = existenceLoop == worldInstance.loop;
+        }
         else
         if (existence == Existence.substracted)
             SetActive(!substractedFrom.Contains(worldInstance.loop) || isHeld);
@@ -654,10 +656,10 @@ public abstract class Element : MonoBehaviour {
     void Orbit(Prism prism, Link link) {
         int diff = worldInstance.id - prism.worldInstance.id;
         if (diff != 0) prism.SetNewInstance(diff);
-        StopOrbit(); // In case we're already orbiting
+        //StopOrbit(); // In case we're already orbiting
 
-        spline = worldInstance.gameObject.AddComponent<BezierSpline>(); // we should put the splines elsewhere
-
+        if (!spline) 
+            spline = worldInstance.gameObject.AddComponent<BezierSpline>(); // we should put the splines elsewhere
         spline.Reset();
         spline.AddCurve();
         spline.Loop = true;
@@ -672,14 +674,17 @@ public abstract class Element : MonoBehaviour {
         spline.SetControlPointMode(5, BezierControlPointMode.Mirrored); // Set mirrored for start tangent
         spline.SetControlPointMode(2, BezierControlPointMode.Mirrored); // Set mirrored for opposite tangent
 
+        if (walker)
+            Destroy(walker);
+
         walker = gameObject.AddComponent<SplineWalker>();
+
         walker.mode = SplineWalkerMode.Loop;
         walker.duration = 5; // time the star takes to orbit
         walker.spline = spline;
 
         // Ellipse done. Add Trail:
-
-        Material mat = link.GetComponent<Renderer>().sharedMaterial;
+        
         AddLocalTrail();
 
         // Done. Destroy stuff:
@@ -694,8 +699,8 @@ public abstract class Element : MonoBehaviour {
     }
 
     void AddLocalTrail() {
-        trail = gameObject.AddComponent<LocalTrailRenderer>();
-
+        if (!trail)
+            trail = gameObject.AddComponent<LocalTrailRenderer>();
         trail.material = PrefabManager.link.mat;
         trail.startColor = trail.endColor = chroma.color;
         trail.startWidth = 0;

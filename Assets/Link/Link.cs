@@ -104,7 +104,7 @@ public class Link : MonoBehaviour {
     /// The length of the link. Distance between originPosition and targetPosition.
     /// </summary>
     public float length {
-        get { return Mathf.Min(Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x, 10000); }
+        get { return Mathf.Clamp(Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x, 0, 10000); }
     }
 
     #endregion

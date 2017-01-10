@@ -14,8 +14,14 @@ public class SoundManager : MonoBehaviour {
         singleton = this;
     }
 
+    float lastTimePlayed;
+    AudioClip lastAudioClip;
     public void Play(AudioClip audioClip, float volume, AudioSource audioSource) {
-        audioSource.PlayOneShot(audioClip, volume);
+        if (audioClip != lastAudioClip || lastTimePlayed > 0.1f) {
+            audioSource.PlayOneShot(audioClip, volume);
+            lastAudioClip = audioClip;
+            lastTimePlayed = Time.time;
+        }
     }
 
 }

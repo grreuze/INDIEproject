@@ -56,4 +56,12 @@ public class LocalTrailRenderer : MonoBehaviour {
     void OnDestroy() {
         Destroy(line);
     }
+    
+    void OnEnable() {
+        line.enabled = true;
+    }
+
+    void OnDisable() {
+        line.enabled = false;
+    }
 }
