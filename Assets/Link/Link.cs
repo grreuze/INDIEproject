@@ -17,7 +17,7 @@ public class Link : MonoBehaviour {
     }
     [SerializeField]
     float segmentLength = 0.4f;
-    
+
     public Material mat;
     [SerializeField]
     Material hoverMat;
@@ -300,8 +300,17 @@ public class Link : MonoBehaviour {
     void SetCollider() {
         transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
-        float colWidth = width + (0.1f * Mathf.Sqrt(Mathf.Max(0, cursorSpeedF - 1f)));
-        col.size = new Vector3(colWidth, colWidth, length);
+        if (originPosition.z >= 25 && targetPosition.z >= 25) {//not possible to strike the links which are too far away
+            col.size = new Vector3(0, 0, length);
+        }
+        else if (cursorSpeedF <= 1f) {
+            col.size = new Vector3(width, width, length);
+        }
+        else {
+            //float colWidth = width + (0.1f * Mathf.Sqrt(Mathf.Max(0, cursorSpeedF - 1f)));
+            float colWidth = Mathf.Clamp( Mathf.Sqrt(cursorSpeedF), width, width * 3 );
+            col.size = new Vector3(colWidth, colWidth, length);
+        }
     }
 
     void SetStartPostion(Vector3 pos) {
@@ -330,6 +339,11 @@ public class Link : MonoBehaviour {
         ParticleSystem.MainModule main = ps.main;
         main.simulationSpace = ParticleSystemSimulationSpace.Custom;
         main.customSimulationSpace = origin.worldInstance.transform;
+
+        ParticleSystem.ColorOverLifetimeModule lifetimeColor = ps.colorOverLifetime;
+        Gradient psGrad = new Gradient();
+        psGrad.SetKeys(new GradientColorKey[] { new GradientColorKey(GetComponent<LineRenderer>().startColor, 0.0f), new GradientColorKey(GetComponent<LineRenderer>().endColor, 1.0f) }, new GradientAlphaKey[] { new GradientAlphaKey(1.0f, 0.0f), new GradientAlphaKey(1.0f, 1.0f) });
+        lifetimeColor.color = psGrad;
     }
 
     public void SetStartColor() {
@@ -423,7 +437,7 @@ public class Link : MonoBehaviour {
         
         if (repeatable && destroyClones)
             origin.DestroyCloneLink(target.id);
-        if (this == null) DestroyLink();
+        
         ParticleSystem ps = GetComponentInChildren<ParticleSystem>() ?? null;
         SetParticleSystem(ps);
         ps.Play();
