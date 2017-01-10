@@ -148,6 +148,7 @@ public abstract class Element : MonoBehaviour {
         rend.sharedMaterial = mat;
         outlineColor = chroma.color == Color.white ? outlineColorWhenChromaIsWhite : chroma.color;
         RecolorLinks();
+        if (orbiting) RecolorTrail();
     }
 
     void RecolorLinks() {
@@ -161,6 +162,10 @@ public abstract class Element : MonoBehaviour {
             if (link.prismToOrigin.Count > 0) link.prismToOrigin[0].UpdateTargetColor();
             link.SetEndColor();
         }
+    }
+
+    void RecolorTrail() {
+        trail.startColor = trail.endColor = chroma.color;
     }
 
     public void VertexPing() {
@@ -431,7 +436,7 @@ public abstract class Element : MonoBehaviour {
 
     void UpdateOriginPoints(int myLoop, int loopDiff, MetaPosition metaPos) {
         foreach (Link link in links) {
-            if (link.isVisible && (myLoop != link.originLoop || loopDiff != 0)) {
+            if (link.isVisible && (link.origin && myLoop != link.originLoop || loopDiff != 0)) {
                 if (loopDiff != 0) link.originMetaPos = metaPos;
                 link.originLoop = myLoop;
             }
@@ -440,7 +445,7 @@ public abstract class Element : MonoBehaviour {
 
     void UpdateTargetPoints(int myLoop, int loopDiff, MetaPosition metaPos) {
         foreach (Link link in targeted) {
-            if (link.isVisible && (myLoop != link.targetLoop || loopDiff != 0)) {
+            if (link.isVisible && (link.target && myLoop != link.targetLoop || loopDiff != 0)) {
                 if (loopDiff != 0) link.targetMetaPos = metaPos;
                 link.targetLoop = myLoop;
             }
@@ -542,7 +547,7 @@ public abstract class Element : MonoBehaviour {
     public void DestroyCloneLink(int targetID) {
         foreach(Star clone in clones) {
             foreach(Link link in clone.links) {
-                if (link.target.id == targetID) {
+                if (link.target && link.target.id == targetID) {
                     link.BreakLink(false);
                     break;
                 }
@@ -649,7 +654,8 @@ public abstract class Element : MonoBehaviour {
     void Orbit(Prism prism, Link link) {
         int diff = worldInstance.id - prism.worldInstance.id;
         if (diff != 0) prism.SetNewInstance(diff);
-        
+        StopOrbit(); // In case we're already orbiting
+
         spline = worldInstance.gameObject.AddComponent<BezierSpline>(); // we should put the splines elsewhere
 
         spline.Reset();

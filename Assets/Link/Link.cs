@@ -104,7 +104,7 @@ public class Link : MonoBehaviour {
     /// The length of the link. Distance between originPosition and targetPosition.
     /// </summary>
     public float length {
-        get { return Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x; }
+        get { return Mathf.Min(Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x, 10000); }
     }
 
     #endregion
@@ -423,13 +423,14 @@ public class Link : MonoBehaviour {
         
         if (repeatable && destroyClones)
             origin.DestroyCloneLink(target.id);
-
-        if (this == null) return;
+        if (this == null) DestroyLink();
         ParticleSystem ps = GetComponentInChildren<ParticleSystem>() ?? null;
         SetParticleSystem(ps);
         ps.Play();
 
         line.enabled = false;
+        target = null;
+        origin = null;
         foreach (Prism prism in prismToOrigin)
             prism.attachedLink = null;
         foreach (Prism prism in prismToTarget)
