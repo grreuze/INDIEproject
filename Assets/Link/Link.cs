@@ -404,7 +404,7 @@ public class Link : MonoBehaviour {
 
         //Sound
         //Sound intensity should change according to the speed at which the string is struck
-        soundManager.Play(soundManager.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 2f), MySound);
+        soundManager.Play(soundManager.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 1f), MySound);
         //Sound should be high or low depending on the string's size
         MySound.pitch = 1 / (length * 0.1f);
         MySound.pitch = Mathf.Clamp(MySound.pitch, 0.3f, 1.7f);
@@ -423,6 +423,9 @@ public class Link : MonoBehaviour {
         
         if (repeatable && destroyClones)
             origin.DestroyCloneLink(target.id);
+
+        if (destroyClones)
+            soundManager.Play(soundManager.linkCutSound, 1f, origin.MySound);
 
         if (this == null) return;
         ParticleSystem ps = GetComponentInChildren<ParticleSystem>() ?? null;

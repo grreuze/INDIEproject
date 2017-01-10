@@ -8,7 +8,8 @@ public class SoundManager : MonoBehaviour {
     public AudioClip starBreak;
     public AudioClip startSound;
     public AudioClip stringSound;
-    
+    public AudioClip linkCutSound;
+
     void Awake() {
         singleton = this;
     }
