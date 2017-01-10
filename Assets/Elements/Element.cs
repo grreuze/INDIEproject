@@ -576,9 +576,9 @@ public abstract class Element : MonoBehaviour {
         }
     }
 
-    void StopOrbitClones() {
+    void StopOrbitClones(bool breakClones = true) {
         foreach(Star clone in clones)
-            clone.StopOrbit();
+            clone.StopOrbit(breakClones);
     }
 
     #endregion
@@ -656,7 +656,10 @@ public abstract class Element : MonoBehaviour {
     void Orbit(Prism prism, Link link) {
         int diff = worldInstance.id - prism.worldInstance.id;
         if (diff != 0) prism.SetNewInstance(diff);
+
         //StopOrbit(); // In case we're already orbiting
+
+        StopOrbitClones(false);
 
         if (!spline) 
             spline = worldInstance.gameObject.AddComponent<BezierSpline>(); // we should put the splines elsewhere
@@ -707,11 +710,11 @@ public abstract class Element : MonoBehaviour {
         trail.endWidth = 0.2f;
     }
 
-    void StopOrbit() {
+    void StopOrbit(bool breakTrail = true) {
         orbiting = false;
         if (walker) Destroy(walker);
         if (spline) Destroy(spline);
-        if (trail) Destroy(trail);
+        if (trail && breakTrail) Destroy(trail);
     }
 
 }
