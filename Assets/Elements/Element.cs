@@ -43,6 +43,7 @@ public abstract class Element : MonoBehaviour {
     }
 
     public bool anchored;
+    public int anchorInstanceOffset;
     
     public float vertexOffset {
         get { return rend.material.GetFloat("_VertexOffset"); }
@@ -103,17 +104,13 @@ public abstract class Element : MonoBehaviour {
         if (!isHeld) Rescale(); // We should only rescale if zooming / dezooming / anchored
         CheckLink();
 
-        if (anchored) {
-            UpdateLinks();
-            if (links.Count > 0 || targeted.Count > 0)
-                print(worldInstance.loop);
-        }
+        if (anchored) UpdateLinks();
         
         if (existence == Existence.unique)
-            SetActive(existenceLoop == worldInstance.loop);
+            SetActive(existenceLoop == worldInstance.loop || isHeld);
         else
         if (existence == Existence.substracted)
-            SetActive(!substractedFrom.Contains(worldInstance.loop));
+            SetActive(!substractedFrom.Contains(worldInstance.loop) || isHeld);
     }
 
     void OnMouseEnter() {
@@ -124,8 +121,7 @@ public abstract class Element : MonoBehaviour {
 			rend.material.SetFloat ("_Atmospheric_Opacity_or_Opaque", 1);
         }
     }
-
-
+    
     void OnMouseExit() {
         if (!isHeld) StopHover();
     }
@@ -142,16 +138,6 @@ public abstract class Element : MonoBehaviour {
     public void ApplyChroma() {
         Recolor();
         if (GetComponent<Star>()) Debug.Log(chroma);
-
-        foreach (Link link in links) {// Links I am the origin of
-            if (link.prismToTarget.Count > 0) link.prismToTarget[0].UpdateTargetColor();
-            link.SetStartColor();
-        }
-        foreach (Link link in targeted) {// Links I am the target of
-            if (link.prismToOrigin.Count > 0) link.prismToOrigin[0].UpdateTargetColor();
-            link.SetEndColor();
-        }
-        
         if (existence == Existence.cloned) RecolorClones();
     }
 
@@ -159,6 +145,20 @@ public abstract class Element : MonoBehaviour {
         chroma.ReBalance();
         rend.sharedMaterial = mat;
         outlineColor = chroma.color == Color.white ? outlineColorWhenChromaIsWhite : chroma.color;
+        RecolorLinks();
+    }
+
+    void RecolorLinks() {
+        foreach (Link link in links) {// Links I am the origin of
+            if (link == null) continue;
+            if (link.prismToTarget.Count > 0) link.prismToTarget[0].UpdateTargetColor();
+            link.SetStartColor();
+        }
+        foreach (Link link in targeted) {// Links I am the target of
+            if (link == null) continue;
+            if (link.prismToOrigin.Count > 0) link.prismToOrigin[0].UpdateTargetColor();
+            link.SetEndColor();
+        }
     }
 
     public void VertexPing() {
@@ -215,8 +215,8 @@ public abstract class Element : MonoBehaviour {
         StopHover();
         Mouse.holding = null;
         ChangeInstance();
-        gameObject.layer = 0;
         if (existence == Existence.cloned) ReleaseClones();
+        gameObject.layer = 0;
     }
 
     #endregion
@@ -229,6 +229,8 @@ public abstract class Element : MonoBehaviour {
     void GetWorldInstance() {
         worldTransform = transform.parent;
         worldInstance = worldTransform.GetComponent<WorldInstance>();
+        if (existence != Existence.unique)
+            worldInstance.stars[id] = GetComponent<Star>() ?? worldInstance.stars[id];
     }
 
     /// <summary>
@@ -245,14 +247,17 @@ public abstract class Element : MonoBehaviour {
     
     void ChangeInstance() {
         if (existence == Existence.unique)
-            existenceLoop = worldInstance.loop;
+            existenceLoop = wrapper.currentInstance.loop;
         int diff = wrapper.currentInstance.id - worldInstance.id;
         if (diff == 0)
             transform.parent = worldTransform;
         else {
             SetNewInstance(diff);
-            if (existence == Existence.cloned)
+            if (existence == Existence.cloned) {
                 SetNewCloneInstance(diff);
+                if (anchorInstanceOffset == 0)
+                    MoveClones();
+            }
         }
     }
 
@@ -281,8 +286,12 @@ public abstract class Element : MonoBehaviour {
             }
             if (Input.GetMouseButtonUp(1)) {
                 if (Mouse.linking && Mouse.linking.GetType() == GetType() && Mouse.linking != this && !Mouse.linking.IsLinkedTo(this)) {
+                    if (existence != Existence.unique && Mouse.link.origin.existence != Existence.unique) {
+                        int instanceDifference = Mouse.link.origin.worldInstance.id - worldInstance.id;
+                        int loopDifference = Mouse.link.origin.worldInstance.loop - Mouse.link.originLoop; // number of times we've crossed boundaries
+                        Mouse.link.origin.LinkClones(id, instanceDifference, loopDifference);
+                    }
                     Mouse.link.Connect(this);
-                    Mouse.linking = null;
                 } else {
                     Mouse.BreakLink();
                 }
@@ -306,36 +315,114 @@ public abstract class Element : MonoBehaviour {
         Mouse.link.originLoop = worldInstance.loop;
         Mouse.link.connected = false;
     }
-
-    public void AutoLinkTo(Element target) {
+    
+    void LinkTo(Element target, int targetLoop) {
         Link newLink = Instantiate(PrefabManager.link);
 
         newLink.transform.parent = transform;
+        newLink.origin = this;
         newLink.transform.position = transform.position;
         newLink.originLoop = worldInstance.loop;
         links.Add(newLink);
 
-        newLink.target = target;
-        newLink.targetLoop = target.worldInstance.loop;
-        target.targeted.Add(newLink);
-        newLink.connected = true;
-
-        CircuitManager.instance.CheckCircuit(target);
+        newLink.Connect(target);
+        newLink.targetLoop = targetLoop;
     }
 
+    /// <summary>
+    /// Automatically links this element to another using relative positions.
+    /// </summary>
+    /// <param name="targetID"> The ID of the element we're linking to </param>
+    /// <param name="instanceDiff"> The number of instances between this element and the targeted element </param>
+    /// <param name="loopDiff"> The number of loops between this element and the targeted element </param>
+    public void AutoLink(int targetID, int instanceDiff, int loopDiff) {
+
+        int numberOfInstances = wrapper.numberOfInstances;
+        int maxInstance = numberOfInstances - 1;
+
+        int diff = -instanceDiff; // Check if we're crossing inner or outer bounds
+        if (diff > (maxInstance - worldInstance.id) || diff < (-worldInstance.id)) 
+            loopDiff -= (diff / maxInstance) + (int)Mathf.Sign(diff);
+
+        int targetInstanceID = worldInstance.id - instanceDiff;
+        if (targetInstanceID >= numberOfInstances) targetInstanceID -= numberOfInstances;
+        else if (targetInstanceID < 0) targetInstanceID += numberOfInstances;
+
+        WorldInstance instance = wrapper.worldInstances[targetInstanceID];
+        int targetLoop = worldInstance.loop + loopDiff - (worldInstance.loop - instance.loop);
+        Element target = instance.stars[targetID];
+        LinkTo(target, targetLoop);
+    }
+
+    int loopModifier = 0;
     public void UpdateLinks() {
-        if (links.Count > 0) UpdateOriginPoints();
-        if (targeted.Count > 0) UpdateTargetPoints();
+        if (targeted.Count + links.Count == 0) return;
+        int myLoop = wrapper.currentInstance.loop;
+        MetaPosition modifier = MetaPosition.InRange;
+
+        if (anchored) {
+            int numberOfInstances = wrapper.numberOfInstances;
+            int instanceID = worldInstance.id;
+            
+            if (Mouse.holding) {
+                Mouse.holding.AnchorClones(); // ReAnchor clones just to be sure we get the right anchorInstanceOffset
+                instanceID = wrapper.currentInstance.id - anchorInstanceOffset;
+            } else {
+                print("Stopped Holding.");
+                loopModifier = 0;
+            }
+
+            if (instanceID >= numberOfInstances) {
+                loopModifier = -(instanceID / numberOfInstances); // outer bounds
+                modifier = MetaPosition.External;
+                if (!name.EndsWith(" outer")) { //Debug
+                    print("Outer modifier: " + loopModifier);
+                    name += " outer";
+                }
+                instanceID -= numberOfInstances;
+            } else if (instanceID < 0) {
+                loopModifier = (-instanceID / numberOfInstances) + 1; // inner bounds
+                modifier = MetaPosition.Internal;
+                if (!name.EndsWith(" inner")) { //Debug
+                    print("Inner modifier: " + loopModifier);
+                    name += " inner";
+                }
+                instanceID += numberOfInstances;
+            } else if (loopModifier != 0) {
+                loopModifier = -loopModifier;
+                modifier = MetaPosition.InRange;
+                if (!name.EndsWith(" back")) { //Debug
+                    print("Reverse modifier: " + loopModifier + " myLoop is " + wrapper.worldInstances[instanceID].loop + loopModifier);
+                    name += " back";
+                }
+            }
+
+            myLoop = wrapper.worldInstances[instanceID].loop + loopModifier;
+        } else loopModifier = 0;
+
+        if (links.Count > 0) UpdateOriginPoints(myLoop, loopModifier, modifier);
+        if (targeted.Count > 0) UpdateTargetPoints(myLoop, loopModifier, modifier);
+
+        if (loopModifier != 0 && modifier == MetaPosition.InRange) // If we reversed the previous modifier, get back to 0
+            loopModifier = 0; // Prevents reverting reverse modifiers forever
     }
 
-    void UpdateOriginPoints() {
-        foreach (Link link in links)
-            link.originLoop = link.isVisible ? wrapper.currentInstance.loop : link.originLoop;
+    void UpdateOriginPoints(int myLoop, int loopDiff, MetaPosition metaPos) {
+        foreach (Link link in links) {
+            if (link.isVisible && (myLoop != link.originLoop || loopDiff != 0)) {
+                if (loopDiff != 0) link.originMetaPos = metaPos;
+                link.originLoop = myLoop;
+            }
+        }
     }
 
-    void UpdateTargetPoints() {
-        foreach (Link link in targeted)
-            link.targetLoop = link.isVisible ? wrapper.currentInstance.loop : link.targetLoop;
+    void UpdateTargetPoints(int myLoop, int loopDiff, MetaPosition metaPos) {
+        foreach (Link link in targeted) {
+            if (link.isVisible && (myLoop != link.targetLoop || loopDiff != 0)) {
+                if (loopDiff != 0) link.targetMetaPos = metaPos;
+                link.targetLoop = myLoop;
+            }
+        }
     }
 
     public void DestroyAllLinks() {
@@ -406,8 +493,13 @@ public abstract class Element : MonoBehaviour {
     }
 
     void AnchorClones() {
-        foreach (Star clone in clones)
+        if (existence == Existence.unique) return;
+        anchored = false;
+        anchorInstanceOffset = 0;
+        foreach (Star clone in clones) {
             clone.anchored = true;
+            clone.anchorInstanceOffset = worldInstance.id - clone.worldInstance.id;
+        }
     }
 
     void MoveClones() {
@@ -418,6 +510,22 @@ public abstract class Element : MonoBehaviour {
     void ReleaseClones() {
         foreach (Star clone in clones)
             clone.anchored = false;
+    }
+
+    void LinkClones(int targetID, int instanceDiff, int loopDiff) {
+        foreach(Star clone in clones)
+            clone.AutoLink(targetID, instanceDiff, loopDiff);
+    }
+
+    public void DestroyCloneLink(int targetID) {
+        foreach(Star clone in clones) {
+            foreach(Link link in clone.links) {
+                if (link.target.id == targetID) {
+                    link.BreakLink(false);
+                    break;
+                }
+            }
+        }
     }
 
     void RecolorClones() {

@@ -17,8 +17,11 @@ public class PrefabManager : MonoBehaviour {
     [Header("Particle Systems")]
     [SerializeField]
     GameObject _starCreationParticles;
+    [SerializeField]
+    CircleSize _circleParticle;
 
     public static GameObject starCreationParticles;
+    public static CircleSize circleParticle;
 
     void Awake() {
         star = _star;
@@ -26,5 +29,6 @@ public class PrefabManager : MonoBehaviour {
         link = _link;
 
         starCreationParticles = _starCreationParticles;
+        circleParticle = _circleParticle;
     }
 }

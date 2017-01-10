@@ -10,12 +10,8 @@ public class Star : Element {
     StarParticles particles;
     [SerializeField]
     GameObject destroyParticles;
-    [SerializeField]
-    GameObject circleParticle;
     float lastClick;
     float doubleClickTime = 0.5f;
-    public int circleSize;
-
 
     #endregion
 
@@ -59,17 +55,18 @@ public class Star : Element {
     void CreatePrisms() {
         if (chroma.isPrimary) chroma *= Chroma.MAX; //If only one color, give 3 prisms instead of one
 
+        // Si deux prismes ont la même couleur, ils se retrouvent à la même position
         for (int i = 0; i < chroma.r; i++)
-			CreatePrism(Chroma.red, new Vector3(0.5f, 0, 0));
+            CreatePrism(Chroma.red, new Vector3(0.5f, 0, 0));
         for (int i = 0; i < chroma.g; i++)
-			CreatePrism(Chroma.green, new Vector3(0, 0.5f, 0));
+            CreatePrism(Chroma.green, new Vector3(0, 0.5f, 0));
         for (int i = 0; i < chroma.b; i++)
-			CreatePrism(Chroma.blue, new Vector3(0, 0, 0.5f));
+            CreatePrism(Chroma.blue, new Vector3(0, 0, 0.5f));
     }
 
     void CreatePrism(Chroma value, Vector3 pos) {
         //Vector3 randomPosition = transform.position + new Vector3(Random.Range(-1, 1), Random.Range(-1, 1), Random.Range(-1, 1));
-		pos = pos + transform.position;
+        pos = pos + transform.position;
         Prism prism = (Prism)Instantiate(PrefabManager.prism, pos, Quaternion.identity);
         prism.transform.parent = WorldWrapper.singleton.currentInstance.transform;
         prism.chroma = value;
@@ -86,7 +83,6 @@ public class Star : Element {
         bool previousMove = false;
         bool currentMove = false;
         float minAmplitude = 0.3f;
-        circleSize = 1;
 
         while (isShaking == false && Time.time < shakeTime) {
 
@@ -97,9 +93,8 @@ public class Star : Element {
                 if (previousMove != currentMove) {
                     // Shake feedback
                     shakeRequired--;
-                    circleSize++;
-                    Instantiate(circleParticle, transform.position, Quaternion.identity);
-                    Debug.Log("Shake performed :" + shakeRequired);
+                    shakesPerformed++;
+                    Instantiate(PrefabManager.circleParticle, transform.position, Quaternion.identity);
                     if (shakeRequired != 0) SoundManager.singleton.Play(SoundManager.singleton.starSound[shakeRequired - 1], 1f, MySound);
                     previousMove = currentMove;
                 }
