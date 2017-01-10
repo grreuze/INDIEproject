@@ -657,9 +657,7 @@ public abstract class Element : MonoBehaviour {
         int diff = worldInstance.id - prism.worldInstance.id;
         if (diff != 0) prism.SetNewInstance(diff);
 
-        //StopOrbit(); // In case we're already orbiting
-
-        StopOrbitClones(false);
+        if (existence != Existence.unique) StopOrbitClones(false);
 
         if (!spline) 
             spline = worldInstance.gameObject.AddComponent<BezierSpline>(); // we should put the splines elsewhere
