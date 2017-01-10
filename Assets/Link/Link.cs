@@ -266,12 +266,16 @@ public class Link : MonoBehaviour {
 
     #region Properties Setter Functions
 
-    public void Connect(Element target, bool isAclone = false) {
+    public void Connect(Element target, bool isAClone = false) {
         this.target = target;
         targetLoop = target.worldInstance.loop;
         connected = true;
         target.targeted.Add(this);
         origin.links.Add(this);
+        if (!isAClone) {
+            origin.VertexPing();
+            target.VertexPing();
+        }
         if (Mouse.link == this) Mouse.link = null;
         if (Mouse.linking == origin) Mouse.linking = null;
         if(origin.GetComponent<Prism>() && target.GetComponent<Prism>())
@@ -418,7 +422,7 @@ public class Link : MonoBehaviour {
 
         //Sound
         //Sound intensity should change according to the speed at which the string is struck
-        soundManager.Play(soundManager.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 2f), MySound);
+        soundManager.Play(soundManager.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 1f), MySound);
         //Sound should be high or low depending on the string's size
         MySound.pitch = 1 / (length * 0.1f);
         MySound.pitch = Mathf.Clamp(MySound.pitch, 0.3f, 1.7f);
@@ -435,9 +439,12 @@ public class Link : MonoBehaviour {
         origin.links.Remove(this);
         target.targeted.Remove(this);
         
-        if (repeatable && destroyClones)
-            origin.DestroyCloneLink(target.id);
-        
+        if (destroyClones) {
+            soundManager.Play(soundManager.linkCutSound, 1, origin.MySound);
+            if (repeatable)
+                origin.DestroyCloneLink(target.id);
+        }
+
         ParticleSystem ps = GetComponentInChildren<ParticleSystem>() ?? null;
         SetParticleSystem(ps);
         ps.Play();

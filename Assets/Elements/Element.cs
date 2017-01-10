@@ -57,7 +57,7 @@ public abstract class Element : MonoBehaviour {
 
     static WorldWrapper wrapper;
     Transform worldTransform;
-    protected AudioSource MySound;
+    public AudioSource MySound;
     SoundManager soundManager;
 
     /// <summary>
@@ -585,7 +585,7 @@ public abstract class Element : MonoBehaviour {
 
     public void PlayMySound()
     {
-        float volume = .5f;
+        float volume = 1f;
         int gamme = 5; // can't be < 3 or > 8   Higher = High frequency
         if(chroma.r == chroma.b && chroma.b == chroma.g) // white
         {
