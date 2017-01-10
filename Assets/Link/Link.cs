@@ -266,7 +266,7 @@ public class Link : MonoBehaviour {
 
     #region Properties Setter Functions
 
-    public void Connect(Element target) {
+    public void Connect(Element target, bool isAclone = false) {
         this.target = target;
         targetLoop = target.worldInstance.loop;
         connected = true;

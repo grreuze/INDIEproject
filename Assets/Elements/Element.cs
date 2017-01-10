@@ -352,7 +352,7 @@ public abstract class Element : MonoBehaviour {
         newLink.originLoop = worldInstance.loop;
         links.Add(newLink);
 
-        newLink.Connect(target);
+        newLink.Connect(target, true);
         newLink.targetLoop = targetLoop;
     }
 
