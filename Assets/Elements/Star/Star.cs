@@ -104,6 +104,11 @@ public class Star : Element {
             yield return new WaitForSeconds(Time.deltaTime);
         }
         if (isShaking) {
+
+            //ParticleSystem ps = Instantiate(destroyParticles, transform.position, Quaternion.identity).GetComponent<ParticleSystem>();
+            //ParticleSystem.MainModule main = ps.main;
+            //main.startColor = chroma.color;
+
             Instantiate(destroyParticles, transform.position, Quaternion.identity); //spawn the breaking particles
             BreakStar();
             //SoundManager.singleton.Play(SoundManager.singleton.starBreak, 1f, MySound);

@@ -12,7 +12,7 @@ public class Universe : MonoBehaviour {
     AnimationCurve animCurve, vignetteCurve = null;
     GameController gc;
     ParticleSystem ps;
-    float zoomSpeed, zoomSpeedModifier = 10;
+    float zoomSpeed, zoomSpeedModifier = 20;
     Vector3 small = Vector3.one * 0.00001f;
     Vignette vignette;
 
