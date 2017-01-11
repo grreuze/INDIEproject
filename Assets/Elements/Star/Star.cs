@@ -36,7 +36,7 @@ public class Star : Element {
         }
         lastClick = Time.time;
     }
-    
+
     void BreakStar() {
         StopHold();
         DestroyAllLinks();
@@ -57,11 +57,11 @@ public class Star : Element {
 
         // Si deux prismes ont la même couleur, ils se retrouvent à la même position
         for (int i = 0; i < chroma.r; i++)
-            CreatePrism(Chroma.red, new Vector3(0.5f, 0, 0));
+            CreatePrism(Chroma.red, new Vector3(0.5f, i, 0));
         for (int i = 0; i < chroma.g; i++)
-            CreatePrism(Chroma.green, new Vector3(0, 0.5f, 0));
+            CreatePrism(Chroma.green, new Vector3(0, 0.5f, i));
         for (int i = 0; i < chroma.b; i++)
-            CreatePrism(Chroma.blue, new Vector3(0, 0, 0.5f));
+            CreatePrism(Chroma.blue, new Vector3(i, 0, 0.5f));
     }
 
     void CreatePrism(Chroma value, Vector3 pos) {
@@ -106,7 +106,7 @@ public class Star : Element {
         if (isShaking) {
             Instantiate(destroyParticles, transform.position, Quaternion.identity); //spawn the breaking particles
             BreakStar();
-            SoundManager.singleton.Play(SoundManager.singleton.starBreak, 1f, MySound);
+            //SoundManager.singleton.Play(SoundManager.singleton.starBreak, 1f, MySound);
         } else ResetCheckShake();
     }
 

@@ -18,8 +18,7 @@ public class Link : MonoBehaviour {
     [SerializeField]
     float segmentLength = 0.4f;
 
-    [SerializeField]
-    Material mat;
+    public Material mat;
     [SerializeField]
     Material hoverMat;
 
@@ -105,7 +104,7 @@ public class Link : MonoBehaviour {
     /// The length of the link. Distance between originPosition and targetPosition.
     /// </summary>
     public float length {
-        get { return Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x; }
+        get { return Mathf.Clamp(Vector3.Distance(originPosition, targetPosition) / transform.lossyScale.x, 0, 10000); }
     }
 
     #endregion
@@ -221,6 +220,8 @@ public class Link : MonoBehaviour {
     }
 
     void LateUpdate() { // We should change it so that links only update when necessary
+        if (destroyed) return;
+
         SetStartPostion(originPosition);
         
         collisions = Mouse.breakLinkMode || Mouse.isHoldingPrism; // Only have collisions if we're breaking links or holding a prism
@@ -265,12 +266,16 @@ public class Link : MonoBehaviour {
 
     #region Properties Setter Functions
 
-    public void Connect(Element target) {
+    public void Connect(Element target, bool isAClone = false) {
         this.target = target;
         targetLoop = target.worldInstance.loop;
         connected = true;
         target.targeted.Add(this);
         origin.links.Add(this);
+        if (!isAClone) {
+            origin.VertexPing();
+            target.VertexPing();
+        }
         if (Mouse.link == this) Mouse.link = null;
         if (Mouse.linking == origin) Mouse.linking = null;
         if(origin.GetComponent<Prism>() && target.GetComponent<Prism>())
@@ -299,21 +304,17 @@ public class Link : MonoBehaviour {
     void SetCollider() {
         transform.LookAt(targetPosition); // sometimes infinity
         col.center = Vector3.forward * (length / 2); // sometimes infinity
-        if (originPosition.z >= 25 && targetPosition.z >= 25) //not possible to strike the links which are too far away
-        {
+        if (originPosition.z >= 25 && targetPosition.z >= 25) {//not possible to strike the links which are too far away
             col.size = new Vector3(0, 0, length);
         }
-        else if (cursorSpeedF <= 1f)
-        {
+        else if (cursorSpeedF <= 1f) {
             col.size = new Vector3(width, width, length);
         }
-        else
-        {
-            col.size = new Vector3(Mathf.Clamp(Mathf.Sqrt(cursorSpeedF), width, width*30), Mathf.Clamp(Mathf.Sqrt(cursorSpeedF), width, width*30), length);
+        else {
+            //float colWidth = width + (0.1f * Mathf.Sqrt(Mathf.Max(0, cursorSpeedF - 1f)));
+            float colWidth = Mathf.Clamp( Mathf.Sqrt(cursorSpeedF), width, width * 3 );
+            col.size = new Vector3(colWidth, colWidth, length);
         }
-            //I changed it again because it was often missing the string, or making the collider way too big
-        //float colWidth = width + (0.1f * Mathf.Sqrt(Mathf.Max(0, cursorSpeedF - 1f)));
-        //col.size = new Vector3(colWidth, colWidth, length);
     }
 
     void SetStartPostion(Vector3 pos) {
@@ -421,7 +422,7 @@ public class Link : MonoBehaviour {
 
         //Sound
         //Sound intensity should change according to the speed at which the string is struck
-        soundManager.Play(soundManager.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 2f), MySound);
+        soundManager.Play(soundManager.stringSound, Mathf.Clamp(0.2f + (cursorSpeedF / 10f), 0f, 1f), MySound);
         //Sound should be high or low depending on the string's size
         MySound.pitch = 1 / (length * 0.1f);
         MySound.pitch = Mathf.Clamp(MySound.pitch, 0.3f, 1.7f);
@@ -438,20 +439,24 @@ public class Link : MonoBehaviour {
         origin.links.Remove(this);
         target.targeted.Remove(this);
         
-        if (repeatable && destroyClones)
-            origin.DestroyCloneLink(target.id);
+        if (destroyClones) {
+            soundManager.Play(soundManager.linkCutSound, 1, origin.MySound);
+            if (repeatable)
+                origin.DestroyCloneLink(target.id);
+        }
 
-        if (this == null) return;
         ParticleSystem ps = GetComponentInChildren<ParticleSystem>() ?? null;
         SetParticleSystem(ps);
         ps.Play();
 
         line.enabled = false;
+        target = null;
+        origin = null;
         foreach (Prism prism in prismToOrigin)
             prism.attachedLink = null;
         foreach (Prism prism in prismToTarget)
             prism.attachedLink = null;
-        Invoke("DestroyLink", ps.main.startLifetime.constant);
+        Invoke("DestroyLink", ps.main.startLifetime.constant); //Destroy the link when the Particle System is over
     }
 
     void DestroyLink() {
