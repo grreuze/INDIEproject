@@ -542,7 +542,7 @@ public abstract class Element : MonoBehaviour {
     }
 
     void LinkClones(int targetID, int instanceDiff, int loopDiff) {
-        foreach(Star clone in clones)
+        foreach(Star clone in clones) 
             clone.AutoLink(targetID, instanceDiff, loopDiff);
     }
 
@@ -648,7 +648,9 @@ public abstract class Element : MonoBehaviour {
     }
 
     #endregion
-    
+
+    #region Orbit Methods
+
     bool orbiting;
     BezierSpline spline;
     SplineWalker walker;
@@ -657,9 +659,23 @@ public abstract class Element : MonoBehaviour {
         int diff = worldInstance.id - prism.worldInstance.id;
         if (diff != 0) prism.SetNewInstance(diff);
 
-        if (existence != Existence.unique) StopOrbitClones(false);
+        if (existence != Existence.unique)
+            StopOrbitClones(false);
 
-        if (!spline) 
+        DoSpline(prism);
+        DoWalker();
+        AddLocalTrail();
+        
+        link.BreakLink();
+        Destroy(prism.gameObject);
+        
+        orbiting = true;
+        if (existence != Existence.unique)
+            OrbitClones();
+    }
+
+    void DoSpline(Prism prism) {
+        if (!spline)
             spline = worldInstance.gameObject.AddComponent<BezierSpline>(); // we should put the splines elsewhere
         spline.Reset();
         spline.AddCurve();
@@ -674,7 +690,9 @@ public abstract class Element : MonoBehaviour {
 
         spline.SetControlPointMode(5, BezierControlPointMode.Mirrored); // Set mirrored for start tangent
         spline.SetControlPointMode(2, BezierControlPointMode.Mirrored); // Set mirrored for opposite tangent
+    }
 
+    void DoWalker() {
         if (walker)
             Destroy(walker);
 
@@ -683,20 +701,6 @@ public abstract class Element : MonoBehaviour {
         walker.mode = SplineWalkerMode.Loop;
         walker.duration = 5; // time the star takes to orbit
         walker.spline = spline;
-
-        // Ellipse done. Add Trail:
-        
-        AddLocalTrail();
-
-        // Done. Destroy stuff:
-
-        link.BreakLink();
-        Destroy(prism.gameObject);
-        
-        // Done.
-
-        orbiting = true;
-        if (existence != Existence.unique) OrbitClones();
     }
 
     void AddLocalTrail() {
@@ -704,8 +708,11 @@ public abstract class Element : MonoBehaviour {
             trail = gameObject.AddComponent<LocalTrailRenderer>();
         trail.material = PrefabManager.link.mat;
         trail.startColor = trail.endColor = chroma.color;
+
+        trail.width = PrefabManager.link._width;
+        trail.adjustWidth = PrefabManager.link.adjustWidth;
         trail.startWidth = 0;
-        trail.endWidth = 0.2f;
+        trail.endWidth = PrefabManager.link._width;
     }
 
     void StopOrbit(bool breakTrail = true) {
@@ -715,6 +722,7 @@ public abstract class Element : MonoBehaviour {
         if (trail && breakTrail) Destroy(trail);
     }
 
+    #endregion
 }
 
 public enum Existence {

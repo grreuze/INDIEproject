@@ -11,7 +11,7 @@ public class Link : MonoBehaviour {
     public GameObject stringParticle;
 
     [Header("Line Renderer Properties"), SerializeField, Tooltip("The start and end width of the line renderer")]
-    float _width = 0.5f;
+    public float _width = 0.5f;
     float width {
         get { return _width / transform.lossyScale.x; }
     }
@@ -92,7 +92,7 @@ public class Link : MonoBehaviour {
     public Existence existence;
     public MetaPosition originMetaPos, targetMetaPos;
     [SerializeField]
-    bool adjustWidth;
+    public bool adjustWidth;
 
     /// <summary>
     /// Returns whether or not the Link is currently visible by the player.
@@ -270,8 +270,8 @@ public class Link : MonoBehaviour {
         this.target = target;
         targetLoop = target.worldInstance.loop;
         connected = true;
-        target.targeted.Add(this);
-        origin.links.Add(this);
+        if (!target.targeted.Contains(this)) target.targeted.Add(this);
+        if (!origin.links.Contains(this)) origin.links.Add(this);
         if (!isAClone) {
             origin.VertexPing();
             target.VertexPing();
@@ -438,7 +438,7 @@ public class Link : MonoBehaviour {
 
         origin.links.Remove(this);
         target.targeted.Remove(this);
-        
+
         if (destroyClones) {
             soundManager.Play(soundManager.linkCutSound, 1, origin.MySound);
             if (repeatable)

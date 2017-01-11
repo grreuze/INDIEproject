@@ -19,6 +19,8 @@ public class LocalTrailRenderer : MonoBehaviour {
         set { line.endColor = value; }
     }
 
+    public float width;
+
     public float startWidth {
         get { return line.startWidth; }
         set { line.startWidth = value; }
@@ -27,7 +29,9 @@ public class LocalTrailRenderer : MonoBehaviour {
         get { return line.endWidth; }
         set { line.endWidth = value; }
     }
-    
+
+    public bool adjustWidth;
+
     LineRenderer line;
     Vector3[] positions;
     Transform _transform;
@@ -51,6 +55,8 @@ public class LocalTrailRenderer : MonoBehaviour {
         for (int i = 0; i < vertices - 1; i++)
             SetPosition(i, positions[i + 1]);
         SetPosition(vertices - 1, _transform.localPosition);
+        if (adjustWidth)
+            endWidth = width * transform.lossyScale.x;
     }
 
     void OnDestroy() {
