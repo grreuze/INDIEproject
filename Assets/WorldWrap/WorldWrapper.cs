@@ -40,7 +40,7 @@ public class WorldWrapper : MonoBehaviour {
         worldInstances.Add(Instantiate(ogWorldInstance));
         worldInstances[0].transform.localScale = ogWorldInstance.transform.localScale / (maxScale);
         worldInstances[0].name = "WorldInstance [0]";
-
+        
         worldInstances.Add(Instantiate(ogWorldInstance));
         worldInstances[1].transform.localScale = ogWorldInstance.transform.localScale / scaleFactor;
         worldInstances[1].name = "WorldInstance [1]";
@@ -51,7 +51,7 @@ public class WorldWrapper : MonoBehaviour {
 
         worldInstances.Add(Instantiate(ogWorldInstance));
         worldInstances[3].transform.localScale = ogWorldInstance.transform.localScale * scaleFactor;
-        worldInstances[3].name = "WorldInstance [3]";
+        worldInstances[3].name = "WorldInstance [3]"; 
 
         numberOfInstances = worldInstances.Count;
         universe.Initialisation();

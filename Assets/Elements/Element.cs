@@ -594,7 +594,7 @@ public abstract class Element : MonoBehaviour {
             soundManager.Play(soundManager.starSound[gamme], volume, MySound);
         }
 
-        if (chroma.b > chroma.r && chroma.g > chroma.b) //violet - blue
+        if (chroma.b > chroma.r && chroma.r > chroma.g) //violet - blue
         {
             soundManager.Play(soundManager.starSound[gamme + 5], volume, MySound);
         } 
@@ -608,12 +608,12 @@ public abstract class Element : MonoBehaviour {
             soundManager.Play(soundManager.starSound[gamme + 3], volume, MySound);
         }
 
-        else if (chroma.r == chroma.b && chroma.b > chroma.g) // rose
+        else if (chroma.r > chroma.b && chroma.b > chroma.g && chroma.g > 0) // rose
         {
             soundManager.Play(soundManager.starSound[gamme + 2], volume, MySound);
         }
 
-        else if (chroma.r > chroma.b && chroma.b > chroma.g) //magenta
+        else if (chroma.r > chroma.b && chroma.g == 0 && chroma.b >0) //magenta
         {
             soundManager.Play(soundManager.starSound[gamme + 1], volume, MySound);
         } 
@@ -635,12 +635,12 @@ public abstract class Element : MonoBehaviour {
             soundManager.Play(soundManager.starSound[gamme - 3], volume, MySound);
         }
 
-        else if (chroma.g > chroma.b && chroma.b > chroma.r) //Jaune - vert
+        else if (chroma.g > chroma.r && chroma.r > chroma.b) //Jaune - vert
         {
             soundManager.Play(soundManager.starSound[gamme - 4], volume, MySound);
         } 
 
-        else if (chroma.g > chroma.b && chroma.g > chroma.r) // green
+        else if (chroma.g == 1 && chroma.b == 0 && chroma.r == 0) // green
         {
             soundManager.Play(soundManager.starSound[gamme - 5], volume, MySound);
         }

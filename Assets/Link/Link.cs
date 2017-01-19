@@ -273,7 +273,7 @@ public class Link : MonoBehaviour {
         if (!target.targeted.Contains(this)) target.targeted.Add(this);
         if (!origin.links.Contains(this)) origin.links.Add(this);
         if (!isAClone) {
-            //origin.VertexPing();
+            origin.VertexPing();
             target.VertexPing();
         }
         if (Mouse.link == this) Mouse.link = null;

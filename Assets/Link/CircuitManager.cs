@@ -30,7 +30,7 @@ public class CircuitManager : MonoBehaviour {
     
     IEnumerator _SendSignalToElement(Element element) {
 
-        yield return new WaitForSeconds(0.2f);
+        yield return new WaitForSeconds(0.3f);
         uniquePath.Add(element);
         
         if (element.links.Count > 0) {

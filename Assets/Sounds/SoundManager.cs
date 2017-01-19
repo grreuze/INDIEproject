@@ -21,6 +21,7 @@ public class SoundManager : MonoBehaviour {
             audioSource.PlayOneShot(audioClip, volume);
             lastAudioClip = audioClip;
             lastTimePlayed = Time.time;
+            Debug.Log("Note : " + audioClip);
         }
     }
 
